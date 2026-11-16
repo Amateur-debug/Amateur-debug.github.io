@@ -111,7 +111,8 @@ unless content_root
   content_root = File.join(Dir.mktmpdir('content-', BUILD_ROOT), 'checkout')
   git('clone', '--quiet', '--depth', '1', '--branch', ref, "https://github.com/#{repository}.git", content_root)
 end
-raise 'Content checkout must contain pages/index.md and site.yml' unless File.file?(File.join(content_root, 'pages/index.md')) && File.file?(File.join(content_root, 'site.yml'))
+pages_root = File.join(content_root, 'pages')
+raise 'Content checkout must contain pages/index.md and pages/site.yml' unless File.file?(File.join(pages_root, 'index.md')) && File.file?(File.join(pages_root, 'site.yml'))
 [theme_root, content_root].each do |directory|
   Dir.glob(File.join(directory, '**', '*'), File::FNM_DOTMATCH).each do |path|
     next if path.include?('/.git/') || path.end_with?('/.git')
@@ -127,9 +128,9 @@ end
   path = File.join(theme_root, name)
   FileUtils.cp(path, source) if File.file?(path)
 end
-profile = read_yaml(File.join(content_root, 'site.yml'))
+profile = read_yaml(File.join(pages_root, 'site.yml'))
 allowed_profile_keys = %w[title tagline description avatar github twitter social]
-raise 'site.yml contains unsupported settings' unless (profile.keys - allowed_profile_keys).empty?
+raise 'pages/site.yml contains unsupported settings' unless (profile.keys - allowed_profile_keys).empty?
 configuration = merge_config(read_yaml(File.join(theme_root, 'config.yml')), settings)
 configuration = merge_config(configuration, profile)
 configuration['exclude'] = (Array(configuration['exclude']) + %w[Gemfile Gemfile.lock README.md LICENSE tools themes]).uniq
@@ -137,7 +138,7 @@ write(File.join(source, '_config.yml'), YAML.dump(configuration))
 
 page_icons = { 'projects' => 'fas fa-code', 'resume' => 'fas fa-file-alt', 'publications' => 'fas fa-book-open' }
 page_order = { 'projects' => 0, 'resume' => 1, 'publications' => 2 }
-Dir.glob(File.join(content_root, 'pages', '*.md')).sort.each do |page|
+Dir.glob(File.join(pages_root, '*.md')).sort.each do |page|
   name = File.basename(page, '.md')
   raise "Invalid page filename: #{name}" unless name.match?(/\A[a-z0-9][a-z0-9-]*\z/)
   if name == 'index'
@@ -155,7 +156,7 @@ Dir.glob(File.join(content_root, 'posts', '*.md')).sort.each do |post|
   raise "Blog filename must use YYYY-MM-DD-title.md: #{name}" unless name.match?(/\A\d{4}-\d{2}-\d{2}-.+\.md\z/)
   write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
 end
-{ 'images' => 'assets/img', 'files' => 'assets/files', 'data' => '_data' }.each do |from, to|
+{ 'images' => 'assets/img', 'files' => 'assets/files', 'pages/data' => '_data' }.each do |from, to|
   directory = File.join(content_root, from)
   next unless File.directory?(directory)
   FileUtils.mkdir_p(File.join(source, to))

@@ -16,12 +16,14 @@
 | 简历 | pages/resume.md |
 | 项目 | pages/projects.md |
 | 博客 | posts/YYYY-MM-DD-title.md |
-| 个人站点信息 | site.yml |
+| 个人站点信息 | pages/site.yml |
+| 网站联系入口 | pages/data/contact.yml |
 | 图片与 PDF | images/、files/ |
 
 博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
 论文列表可直接新建为 `pages/publications.md`，网站会自动增加页面与导航。
 内容仓库的 README 逐项说明了目录和文件用途。
+网站专用的页面与 YAML 设置集中在 `docs/pages/`；文章、图片和附件分别保存在 `posts/`、`images/`、`files/`，便于独立阅读和复用。
 
 内容更新后，网站约每 15 分钟检查一次更新（GitHub 调度可能延迟）。
 需要立即发布时，在本仓库 **Actions → Build and Deploy → Run workflow**。
@@ -77,7 +79,7 @@ tools/check_site.py     检查生成页面和本地链接
 .build/                 临时标准 Jekyll 目录与生成网页，不提交
 ```
 
-pages/index.md → 临时站点 index.md；其他 pages/*.md → _tabs/；posts/*.md → _posts/；images/ → assets/img/；files/ → assets/files/。
+pages/index.md → 临时站点 index.md；其他 pages/*.md → _tabs/；pages/site.yml → 合并进临时站点配置；pages/data/ → _data/；posts/*.md → _posts/；images/ → assets/img/；files/ → assets/files/。
 Jekyll 的标准目录在 `.build/` 内组装，不向工程仓库重复提交正文。
 
 ## GitHub Pages
