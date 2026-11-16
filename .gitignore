@@ -1,35 +1,41 @@
-# Bundler cache
-.bundle
-vendor
+# Deny by default. Allow only website sources and build configuration.
+/*
+!/.gitignore
+!/.gitattributes
+!/.editorconfig
+!/Gemfile
+!/Gemfile.lock
+!/LICENSE
+!/README.md
+!/_config.yml
+!/.github/
+/.github/*
+!/.github/workflows/
+!/themes/
+!/tools/
 
-# Jekyll cache
-.jekyll-cache
-.jekyll-metadata
-_site
+# Optional shared editor settings.
+!/.vscode/
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+!/.vscode/tasks.json
 
-# RubyGems
-*.gem
-
-# NPM dependencies
-node_modules
-package-lock.json
-
-# IDE configurations
-.idea
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/tasks.json
-
-# Misc
-_sass/vendors
-assets/js/dist
-
-# Hidden system files
-*~
+# Keep local editor, system and generated files out of allowed directories.
 .DS_Store
 Thumbs.db
+.idea/
+__pycache__/
+*.py[cod]
+*~
 
-# Assembled source and generated pages
+.bundle/
+vendor/
+.jekyll-cache/
+.jekyll-metadata
+_site/
+*.gem
+node_modules/
+package-lock.json
 .build/
 .content/
