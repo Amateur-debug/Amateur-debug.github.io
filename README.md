@@ -21,6 +21,7 @@
 | 导航条目及顺序 | pages/data/navigation.yml |
 | 图片与 PDF | images/、files/ |
 | 学校与公司 Logo | image/logo/ |
+| 网站标签图标 | pages/icons/ |
 
 博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
 独立页面放在 `pages/`，网站会生成对应页面；导航入口和顺序由 `pages/data/navigation.yml` 配置，两个主题使用同一份导航数据。
@@ -31,6 +32,8 @@
 需要立即发布时，在本仓库 **Actions → Build and Deploy → Run workflow**。
 定时运行会对比已发布网站的 `site-build.json`，未改变的内容不会重新构建部署。
 本仓库代码 push 到 main 时立即触发构建。
+
+图标由 `docs/pages/icons/` 提供，中英文站共用 XC 头像的 SVG、PNG 和 ICO 版本。构建时覆盖主题默认资源，并为生成页面写入带版本号的图标链接；无需修改主题模板。
 
 ## 中英文网站
 

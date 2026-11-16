@@ -11,6 +11,7 @@ require 'open3'
 require 'net/http'
 require 'uri'
 require 'rbconfig'
+require 'digest'
 
 ROOT = File.expand_path('..', __dir__)
 BUILD_ROOT = File.join(ROOT, '.build')
@@ -166,12 +167,15 @@ Dir.glob(File.join(posts_root, '*.md')).sort.each do |post|
   write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
 end
 
-{ 'images' => 'assets/img', 'files' => 'assets/files', 'image/logo' => 'assets/img/logo', 'pages/data' => '_data' }.each do |from, to|
+{ 'images' => 'assets/img', 'files' => 'assets/files', 'image/logo' => 'assets/img/logo', 'pages/data' => '_data',
+  'pages/icons' => 'assets/img/favicons' }.each do |from, to|
   directory = File.join(content_root, from)
   next unless File.directory?(directory)
   FileUtils.mkdir_p(File.join(source, to))
   Dir.children(directory).each do |name|
     next if name.start_with?('.')
+    # Chirpy generates its own manifest page; replace the output after rendering.
+    next if from == 'pages/icons' && name == 'site.webmanifest'
     FileUtils.cp_r(File.join(directory, name), File.join(source, to))
   end
 end
@@ -202,6 +206,28 @@ ENV['JEKYLL_ENV'] ||= 'production'
 require 'jekyll'
 Jekyll::PluginManager.require_from_bundler
 Jekyll::Commands::Build.process('source' => source, 'destination' => destination, 'trace' => true)
+
+# Apply personal icons to rendered pages without editing theme templates.
+icons = File.join(destination, 'assets', 'img', 'favicons')
+if File.file?(File.join(content_root, 'pages', 'icons', 'favicon.svg'))
+  version = Digest::SHA256.file(File.join(icons, 'favicon.svg')).hexdigest[0, 12]
+  icon_url = configuration.fetch('baseurl', '') + '/assets/img/favicons'
+  links = [
+    %(<link rel="icon" type="image/png" sizes="96x96" href="#{icon_url}/favicon-96x96.png?v=#{version}">),
+    %(<link rel="icon" type="image/svg+xml" href="#{icon_url}/favicon.svg?v=#{version}">),
+    %(<link rel="shortcut icon" href="#{icon_url}/favicon.ico?v=#{version}">),
+    %(<link rel="apple-touch-icon" sizes="180x180" href="#{icon_url}/apple-touch-icon.png?v=#{version}">)
+  ].join
+  Dir.glob(File.join(destination, '**', '*.html')).each do |path|
+    text = File.read(path, encoding: 'UTF-8')
+    text = text.gsub(/<link\b[^>]*\brel=["'](?:icon|shortcut icon|apple-touch-icon|mask-icon)["'][^>]*>/i, '')
+    text = text.sub(/<head\b[^>]*>/i) { |tag| tag + links }
+    write(path, text)
+  end
+  FileUtils.cp(File.join(icons, 'favicon.ico'), File.join(destination, 'favicon.ico'))
+  manifest_path = File.join(content_root, 'pages', 'icons', 'site.webmanifest')
+  FileUtils.cp(manifest_path, icons) if File.file?(manifest_path)
+end
 content_commit = begin
   top = git('-C', content_root, 'rev-parse', '--show-toplevel')
   raise 'Content is not a separate checkout' unless File.expand_path(top).casecmp?(File.expand_path(content_root))
