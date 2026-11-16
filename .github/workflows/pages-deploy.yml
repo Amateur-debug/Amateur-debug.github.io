@@ -33,7 +33,7 @@ jobs:
           repository: Amateur-debug/docs
           ref: main
           path: .content
-          ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
+          ssh-key: ${{ secrets.PERSONAL_WEBSITE_KEY }}
           persist-credentials: false
       - uses: ruby/setup-ruby@v1
         with:

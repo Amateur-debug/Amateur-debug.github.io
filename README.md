@@ -82,7 +82,7 @@ Jekyll 的标准目录在 `.build/` 内组装，不向工程仓库重复提交�
 ## GitHub Pages
 
 在本仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
-内容仓库为私有仓库。Actions 使用仅对 docs 有只读权限的部署密钥读取内容，私钥保存在本站仓库的 `DOCS_DEPLOY_KEY` Actions Secret 中。
+内容仓库为私有仓库。Actions 使用仅对 docs 有只读权限的部署密钥读取内容，私钥保存在本站仓库的 `PERSONAL_WEBSITE_KEY` Actions Secret 中。
 该密钥无法向 docs 写入；本地编辑和 push 继续使用你自己的 GitHub 身份。
 网站和构建后的页面仍然公开。仓库可见性控制源文件的访问，不会使已发布的网页变成私有。
 
