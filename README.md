@@ -3,7 +3,7 @@
 两个仓库分工：
 
 - 本仓库：https://github.com/Amateur-debug/Amateur-debug.github.io —— Jekyll、主题、构建和发布。
-- 内容仓库：https://github.com/Amateur-debug/docs —— 简介、简历、项目、博客、图片和附件。
+- 个人资料仓库：https://github.com/Amateur-debug/docs —— 简介、简历、项目、文章、图片和附件，可独立阅读与复用，也为本站提供内容。
 - 网站：https://amateur-debug.github.io/
 
 ## 写内容
@@ -19,8 +19,9 @@
 | 个人站点信息 | site.yml |
 | 图片与 PDF | images/、files/ |
 
-博客示例在 `docs/examples/` 中，将其复制到 `posts/` 后修改内容即可发布。
-论文页示例复制到 `pages/publications.md` 后会自动增加页面与导航。
+博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
+论文列表可直接新建为 `pages/publications.md`，网站会自动增加页面与导航。
+内容仓库的 README 逐项说明了目录和文件用途。
 
 内容更新后，网站约每 15 分钟检查一次更新（GitHub 调度可能延迟）。
 需要立即发布时，在本仓库 **Actions → Build and Deploy → Run workflow**。
