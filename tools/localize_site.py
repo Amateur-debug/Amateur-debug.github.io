@@ -69,9 +69,9 @@ def localize(site, baseurl, url, translations):
     css.parent.mkdir(parents=True, exist_ok=True)
     css.write_text('''
 .site-language-switch { display: flex; justify-content: flex-end; margin: .5rem 0 1rem; }
-.site-language-switch a { display: inline-flex; align-items: center; min-height: 2.25rem;
-  padding: .3rem .8rem; gap: .4rem; border: 1px solid currentColor; border-radius: .5rem;
-  font-size: .875rem; line-height: 1.4; font-weight: 500; color: inherit; text-decoration: none; }
+.site-language-switch a { display: inline-flex; align-items: center; min-height: 1.75rem;
+  padding: .2rem .4rem; border: 0; border-radius: .25rem;
+  font-size: .75rem; line-height: 1.4; font-weight: 500; color: inherit; text-decoration: none; }
 .site-language-switch a:hover { opacity: .75; }
 .site-language-switch a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 '''.lstrip(), encoding='utf-8')
@@ -80,12 +80,12 @@ def localize(site, baseurl, url, translations):
         counterpart = Path(*relative.parts[1:]) if english else Path('en') / relative
         paired = counterpart in pages
         target = counterpart if paired else Path('blog/index.html' if english else 'en/blog/index.html')
-        label, lang = ('中文', 'zh-CN') if english else ('English', 'en')
+        lang = 'zh-CN' if english else 'en'
         title = ('切换到中文' if english else 'Switch to English') if paired else (
             '查看中文博客（此页面暂无对应译文）' if english else 'View the English blog (no translation for this page)')
         button = (f'<nav class="site-language-switch" aria-label="Language">'
                   f'<a href="{html.escape(baseurl + route(target), quote=True)}" lang="{lang}" hreflang="{lang}" '
-                  f'title="{html.escape(title, quote=True)}"><span aria-hidden="true">文 / A</span> {label}</a></nav>')
+                  f'title="{html.escape(title, quote=True)}" aria-label="{html.escape(title, quote=True)}">中/EN</a></nav>')
         path = site / relative
         text = path.read_text(encoding='utf-8')
         if english:
