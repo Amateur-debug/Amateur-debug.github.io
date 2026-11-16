@@ -156,7 +156,7 @@ Dir.glob(File.join(content_root, 'posts', '*.md')).sort.each do |post|
   raise "Blog filename must use YYYY-MM-DD-title.md: #{name}" unless name.match?(/\A\d{4}-\d{2}-\d{2}-.+\.md\z/)
   write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
 end
-{ 'images' => 'assets/img', 'files' => 'assets/files', 'pages/images' => 'assets/site', 'pages/data' => '_data' }.each do |from, to|
+{ 'images' => 'assets/img', 'files' => 'assets/files', 'image/logo' => 'assets/img/logo', 'pages/data' => '_data' }.each do |from, to|
   directory = File.join(content_root, from)
   next unless File.directory?(directory)
   FileUtils.mkdir_p(File.join(source, to))
