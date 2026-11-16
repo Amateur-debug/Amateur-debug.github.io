@@ -74,6 +74,12 @@ def localize(site, baseurl, url, translations):
   font-size: .75rem; line-height: 1.4; font-weight: 500; color: inherit; text-decoration: none; }
 .site-language-switch a:hover { opacity: .75; }
 .site-language-switch a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+#topbar .site-language-switch { flex-shrink: 0; margin: 0 .65rem 0 auto; }
+@media (max-width: 991.98px) {
+  #topbar #topbar-title { flex: 1; min-width: 0; width: auto; overflow: hidden;
+    white-space: nowrap; text-overflow: ellipsis; }
+  #topbar .site-language-switch { margin: 0 .25rem; }
+}
 '''.lstrip(), encoding='utf-8')
     for relative in sorted(pages):
         english = relative.parts[0] == 'en'
@@ -93,7 +99,11 @@ def localize(site, baseurl, url, translations):
             parser.feed(text)
             parser.close()
             text = ''.join(parser.parts)
-        text, count = re.subn(r'(<main\b[^>]*>)', lambda m: m[1] + button, text, count=1)
+        # Use the existing top bar when available; other themes use their header.
+        text, count = re.subn(r'(<button\b[^>]*\bid="search-trigger"[^>]*>)',
+                              lambda m: button + m[1], text, count=1)
+        if count == 0:
+            text, count = re.subn(r'(<header\b[^>]*>)', lambda m: m[1] + button, text, count=1)
         if count != 1:
             raise ValueError(f'Cannot place language switch: {relative}')
         head = f'<link rel="stylesheet" href="{html.escape(baseurl, quote=True)}/assets/css/language-switch.css">'
