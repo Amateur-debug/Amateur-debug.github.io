@@ -18,11 +18,12 @@
 | 博客 | posts/YYYY-MM-DD-title.md |
 | 个人站点信息 | pages/site.yml |
 | 网站联系入口 | pages/data/contact.yml |
+| 导航条目及顺序 | pages/data/navigation.yml |
 | 图片与 PDF | images/、files/ |
 | 学校与公司 Logo | image/logo/ |
 
 博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
-论文列表可直接新建为 `pages/publications.md`，网站会自动增加页面与导航。
+独立页面放在 `pages/`，网站会生成对应页面；导航入口和顺序由 `pages/data/navigation.yml` 配置，两个主题使用同一份导航数据。
 内容仓库的 README 逐项说明了目录和文件用途。
 网站专用的页面与 YAML 设置集中在 `docs/pages/`；文章、图片和附件分别保存在 `posts/`、`images/`、`files/`，便于独立阅读和复用。
 

@@ -18,29 +18,19 @@
 
   <nav class="flex-column flex-grow-1 w-100 ps-0">
     <ul class="nav">
-      <!-- home -->
-      <li class="nav-item{% if page.url == '/' %}{{ " active" }}{% endif %}">
-        <a href="{{ '/' | relative_url }}" class="nav-link">
-          <i class="fa-fw fas fa-home"></i>
-          <span>{{ site.data.locales[include.lang].tabs.home | upcase }}</span>
-        </a>
-      </li>
-      <li class="nav-item{% if page.url contains '/blog/' %} active{% endif %}">
-        <a href="{{ '/blog/' | relative_url }}" class="nav-link">
-          <i class="fa-fw fas fa-pen-nib" aria-hidden="true"></i><span>博客</span>
-        </a>
-      </li>
-      <!-- the real tabs -->
-      {% for tab in site.tabs %}
-        <li class="nav-item{% if tab.url == page.url %}{{ " active" }}{% endif %}">
-          <a href="{{ tab.url | relative_url }}" class="nav-link">
-            <i class="fa-fw {{ tab.icon }}"></i>
-            {% capture tab_name %}{{ tab.url | split: '/' }}{% endcapture %}
-
-            <span>{{ site.data.locales[include.lang].tabs.[tab_name] | default: tab.title | upcase }}</span>
+      {% for item in site.data.navigation %}
+        {% assign active = false %}
+        {% if page.url == item.url %}
+          {% assign active = true %}
+        {% elsif item.url == '/blog/' and page.url contains '/blog/' %}
+          {% assign active = true %}
+        {% endif %}
+        <li class="nav-item{% if active %} active{% endif %}">
+          <a href="{{ item.url | relative_url }}" class="nav-link"{% if active %} aria-current="page"{% endif %}>
+            <i class="fa-fw {{ item.icon }}" aria-hidden="true"></i>
+            <span>{{ item.title }}</span>
           </a>
         </li>
-        <!-- .nav-item -->
       {% endfor %}
     </ul>
   </nav>

@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% seo %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7/css/all.min.css">
     <link rel="stylesheet" href="{{ '/assets/css/minimal.css' | relative_url }}">
     <link rel="alternate" type="application/atom+xml" title="{{ site.title | escape }}" href="{{ '/feed.xml' | relative_url }}">
   </head>
@@ -14,10 +15,14 @@
         <a class="brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
         <p class="tagline">{{ site.tagline }}</p>
         <nav aria-label="主导航">
-          <a href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}>首页</a>
-          <a href="{{ '/blog/' | relative_url }}"{% if page.url contains '/blog/' %} aria-current="page"{% endif %}>博客</a>
-          {% for tab in site.tabs %}
-            <a href="{{ tab.url | relative_url }}"{% if page.url == tab.url %} aria-current="page"{% endif %}>{{ tab.title }}</a>
+          {% for item in site.data.navigation %}
+            {% assign active = false %}
+            {% if page.url == item.url %}
+              {% assign active = true %}
+            {% elsif item.url == '/blog/' and page.url contains '/blog/' %}
+              {% assign active = true %}
+            {% endif %}
+            <a href="{{ item.url | relative_url }}"{% if active %} aria-current="page"{% endif %}>{{ item.title }}</a>
           {% endfor %}
         </nav>
       </header>
