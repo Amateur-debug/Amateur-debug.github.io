@@ -49,4 +49,11 @@ for path, page in pages.items():
 assert not missing, f'Broken local links: {missing}'
 assert not (site / 'site.yml').exists(), 'Do not publish content-source configuration'
 assert not (site / 'examples').exists(), 'Do not publish examples'
+if (site / 'en/index.html').exists():
+    # Cached pages from before inline styles must not lose their language control.
+    for legacy in ('assets/css/language-switch.css', 'en/assets/css/language-switch.css'):
+        assert (site / legacy).is_file(), f'Missing compatibility stylesheet: {legacy}'
+    for path, page in pages.items():
+        assert '<style id="language-switch-style">' in page.text, f'Missing inline switch style: {path}'
+        assert 'class="site-language-switch"' in page.text, f'Missing language switch: {path}'
 print(f"PASS: {manifest['theme']}; profile and blog; {len(pages)} HTML pages and all local links.")

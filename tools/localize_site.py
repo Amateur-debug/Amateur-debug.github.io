@@ -83,11 +83,13 @@ def localize(site, baseurl, url, translations):
   #topbar .site-language-switch { margin: 0 .25rem; }
 }
 '''.lstrip()
-    # New HTML must never reuse a cached stylesheet from an earlier button design.
+    # Keep styles referenced by cached pages available across deployments.
     css_name = 'language-switch-' + hashlib.sha256(css_text.encode()).hexdigest()[:12] + '.css'
-    css = site / 'assets/css' / css_name
-    css.parent.mkdir(parents=True, exist_ok=True)
-    css.write_text(css_text, encoding='utf-8')
+    for prefix in ('', 'en'):
+        for name in (css_name, 'language-switch.css'):
+            css = site / prefix / 'assets/css' / name
+            css.parent.mkdir(parents=True, exist_ok=True)
+            css.write_text(css_text, encoding='utf-8')
     for relative in sorted(pages):
         english = relative.parts[0] == 'en'
         counterpart = Path(*relative.parts[1:]) if english else Path('en') / relative
@@ -116,7 +118,9 @@ def localize(site, baseurl, url, translations):
             text, count = re.subn(r'(<header\b[^>]*>)', lambda m: m[1] + button, text, count=1)
         if count != 1:
             raise ValueError(f'Cannot place language switch: {relative}')
-        head = f'<link rel="stylesheet" href="{html.escape(baseurl, quote=True)}/assets/css/{css_name}">'
+        # This tiny critical style travels with each page, so Chinese and English
+        # cannot mix fresh markup with an old or temporarily missing stylesheet.
+        head = f'<style id="language-switch-style">{css_text}</style>'
         if paired:
             chinese_path, english_path = (counterpart, relative) if english else (relative, counterpart)
             for language, page in [('zh-CN', chinese_path), ('en', english_path), ('x-default', chinese_path)]:
