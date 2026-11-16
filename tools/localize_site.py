@@ -64,8 +64,17 @@ def route(path):
     return '/' + (name[:-10] if name.endswith('index.html') else name)
 
 
+BLOG_ROUTES = ('blog', 'posts', 'tags', 'categories', 'archives')
+
+
+def shared_blog(path):
+    return path.parts[0] in BLOG_ROUTES
+
+
 def localize(site, baseurl, url, translations):
     pages = {p.relative_to(site) for p in site.rglob('*.html')}
+    redirects = {p for p in pages if p.parts[0] == 'en' and shared_blog(Path(*p.parts[1:]))}
+    pages -= redirects
     css_text = '''
 .site-language-switch { display: flex; justify-content: flex-end; margin: .5rem 0 1rem; }
 .site-language-switch a { display: inline-flex; align-items: center; justify-content: center;
@@ -94,10 +103,12 @@ def localize(site, baseurl, url, translations):
         english = relative.parts[0] == 'en'
         counterpart = Path(*relative.parts[1:]) if english else Path('en') / relative
         paired = counterpart in pages
-        target = counterpart if paired else Path('blog/index.html' if english else 'en/blog/index.html')
+        target = counterpart if paired else Path('index.html' if english else 'en/index.html')
         lang = 'zh-CN' if english else 'en'
         title = ('切换到中文' if english else 'Switch to English') if paired else (
-            '查看中文博客（此页面暂无对应译文）' if english else 'View the English blog (no translation for this page)')
+            '查看中文首页（此页面暂无对应译文）' if english else 'View the English homepage (no translation for this page)')
+        if shared_blog(relative):
+            title = 'English homepage · shared blog'
         zh_class, en_class = ('', 'is-current') if english else ('is-current', '')
         button = (f'<nav class="site-language-switch" aria-label="Language">'
                   f'<a href="{html.escape(baseurl + route(target), quote=True)}" lang="{lang}" hreflang="{lang}" '
@@ -130,6 +141,27 @@ def localize(site, baseurl, url, translations):
         if count != 1:
             raise ValueError(f'Cannot add language metadata: {relative}')
         path.write_text(text, encoding='utf-8')
+
+    # Both language sites point to one blog. Keep old English URLs as redirects.
+    prefix = baseurl + '/en/'
+    pattern = re.compile(re.escape(prefix) + r'(' + '|'.join(BLOG_ROUTES) + r')(?=/|["\'?#])')
+    for path in site.rglob('*'):
+        if path.is_file() and path.suffix in ('.html', '.json', '.xml'):
+            text = path.read_text(encoding='utf-8')
+            if path.name == 'sitemap.xml' and path.parent.name == 'en':
+                text = re.sub(r'<url>.*?</url>', lambda m: '' if pattern.search(m[0]) else m[0], text, flags=re.S)
+            text = pattern.sub(lambda m: baseurl + '/' + m[1], text)
+            path.write_text(text, encoding='utf-8')
+    for relative in redirects:
+        target = baseurl + route(Path(*relative.parts[1:]))
+        canonical = html.escape(url + target, quote=True)
+        target = html.escape(target, quote=True)
+        (site / relative).write_text(
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="shared-blog-redirect" content="true">'
+            f'<meta http-equiv="refresh" content="0;url={target}">'
+            f'<link rel="canonical" href="{canonical}"><title>Blog</title></head>'
+            f'<body><a href="{target}">Continue to the blog</a></body></html>', encoding='utf-8')
 
 
 if __name__ == '__main__':

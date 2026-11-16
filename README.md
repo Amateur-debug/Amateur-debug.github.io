@@ -15,7 +15,7 @@
 | 首页 | pages/index.md |
 | 简历 | pages/resume.md |
 | 项目 | pages/projects.md |
-| 博客 | posts/YYYY-MM-DD-title.md |
+| 博客 | posts/YYYY-MM-DD-title.md，或 pages/blog.yml 选择的 notes/ 笔记 |
 | 个人站点信息 | pages/site.yml |
 | 网站联系入口 | pages/data/contact.yml |
 | 导航条目及顺序 | pages/data/navigation.yml |
@@ -24,6 +24,7 @@
 | 网站标签图标 | pages/icons/ |
 
 博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
+已有技术笔记保存在 `docs/notes/`，通过 `pages/blog.yml` 的 `articles` 列表选择公开文章，配置 `source`、`slug`、`title`、`date`、`description`、`math`、`mermaid`。构建只提取选中的正文和相对引用图片，不复制其他笔记；原始 Markdown 保留原文件名、公式和图片链接。
 独立页面放在 `pages/`，网站会生成对应页面；导航入口和顺序由 `pages/data/navigation.yml` 配置，两个主题使用同一份导航数据。
 内容仓库的 README 逐项说明了目录和文件用途。
 网站专用的页面与 YAML 设置集中在 `docs/pages/`；文章、图片和附件分别保存在 `posts/`、`images/`、`files/`，便于独立阅读和复用。
@@ -37,11 +38,11 @@
 
 ## 中英文网站
 
-中文内容位于 `docs/pages/`、`docs/posts/`，英文内容位于 `docs/pages/en/`、`docs/posts/en/`。英文独立页面与中文使用相同文件名；对应文章也使用相同文件名（自定义 permalink 时保持两边一致）。英文站点信息与导航分别使用 `pages/en/site.yml` 和 `pages/en/data/navigation.yml`。
+个人页面分为中文 `docs/pages/` 与英文 `docs/pages/en/`；英文站点信息和导航由 `pages/en/site.yml` 与 `pages/en/data/navigation.yml` 提供。
 
-构建脚本分别生成中文 `/` 与英文 `/en/`，使用主题已有的语言设置，并隔离两种语言的文章、搜索和分页。`tools/localize_site.py` 在生成的 HTML 顶栏中添加小号“中/EN”语言切换按钮和 hreflang 链接；主题中固定的中文界面文案通过 `pages/en/data/ui.yml` 翻译。这个步骤只处理构建产物，不修改 `themes/` 下的模板文件。
+博客不分语言：`posts/` 和 `pages/blog.yml` 选中的笔记共用 `/blog/` 与 `/posts/`。英文页面的博客链接、最近文章和搜索结果都指向这些统一地址；旧 `/en/blog/`、`/en/posts/` 及相关分类/归档地址保留跳转，英文 sitemap 不重复列出文章。
 
-切换按钮优先跳到对应页面；如果某个页面尚无译文，则跳到另一语言的博客列表，并在按钮提示中说明。站内导航保持当前语言，外部链接和论文 PDF 沿用新标签页打开的设置。
+`tools/localize_site.py` 在生成的 HTML 顶栏添加小号“中/EN”语言切换与 hreflang。独立页面切换到对应译文；没有译文时进入另一语言首页，博客页的 EN 按钮进入英文首页。处理只影响构建产物，不修改 `themes/` 模板。
 
 完整构建会自动包括英文站；排查单一语言可使用 `--locale zh-CN` 或 `--locale en`，单语言构建不添加跨语言按钮。语言切换按钮的样式由构建后处理生成，不依赖特定主题。
 

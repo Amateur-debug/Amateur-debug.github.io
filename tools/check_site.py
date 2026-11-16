@@ -54,6 +54,9 @@ if (site / 'en/index.html').exists():
     for legacy in ('assets/css/language-switch.css', 'en/assets/css/language-switch.css'):
         assert (site / legacy).is_file(), f'Missing compatibility stylesheet: {legacy}'
     for path, page in pages.items():
+        if '<meta name="shared-blog-redirect"' in page.text:
+            assert 'http-equiv="refresh"' in page.text and 'rel="canonical"' in page.text
+            continue
         assert '<style id="language-switch-style">' in page.text, f'Missing inline switch style: {path}'
         assert 'class="site-language-switch"' in page.text, f'Missing language switch: {path}'
 print(f"PASS: {manifest['theme']}; profile and blog; {len(pages)} HTML pages and all local links.")

@@ -160,11 +160,49 @@ Dir.glob(File.join(pages_root, '*.md')).sort.each do |page|
   end
 end
 FileUtils.mkdir_p(File.join(source, '_posts'))
-posts_root = File.join(content_root, locale == 'en' ? 'posts/en' : 'posts')
+posts_root = File.join(content_root, 'posts')
 Dir.glob(File.join(posts_root, '*.md')).sort.each do |post|
   name = File.basename(post)
   raise "Blog filename must use YYYY-MM-DD-title.md: #{name}" unless name.match?(/\A\d{4}-\d{2}-\d{2}-.+\.md\z/)
   write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
+end
+
+# Publish selected notes without copying the private knowledge library into Jekyll.
+# The manifest is website-specific; each article has a single source in notes/.
+blog_manifest = File.join(content_root, 'pages', 'blog.yml')
+if File.file?(blog_manifest)
+  entries = read_yaml(blog_manifest).fetch('articles')
+  raise 'blog.yml articles must be a list' unless entries.is_a?(Array)
+  entries.each do |entry|
+    slug = entry.fetch('slug')
+    raise 'Invalid blog slug' unless slug.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
+    note = File.expand_path(entry.fetch('source'), content_root)
+    raise 'Published notes must be inside notes/' unless note.start_with?(File.join(content_root, 'notes') + '/')
+    text = File.read(note, encoding: 'UTF-8')
+    text = text.sub(/\A# [^\n]+\r?\n+/, '')
+    # Kramdown uses $$ for inline math as well; leave fenced and inline code intact.
+    text = text.split(/(^```.*?^```[^\n]*|`[^`\n]+`)/m).map.with_index do |part, i|
+      next part if i.odd?
+      part.gsub(/^(\#{1,5}) /, '\\1# ').gsub(/(?<![\\$])\$(?!\$)([^\n$]+)(?<!\\)\$(?!\$)/) { "$$#{Regexp.last_match(1)}$$" }
+    end.join
+    text = text.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do |image|
+      alt, reference = Regexp.last_match(1), Regexp.last_match(2)
+      next image if reference.match?(%r{\A(?:[a-zA-Z][\w+.-]*:|/)})
+      asset = File.expand_path(reference, File.dirname(note))
+      raise 'Blog image must stay beside its source note' unless asset.start_with?(File.dirname(note) + '/')
+      raise "Missing blog image: #{asset}" unless File.file?(asset)
+      relative = "assets/blog/#{slug}/#{reference}"
+      FileUtils.mkdir_p(File.dirname(File.join(source, relative)))
+      FileUtils.cp(asset, File.join(source, relative))
+      "![#{alt}]({{ '/#{relative}' | relative_url }})"
+    end
+    date = Date.iso8601(entry.fetch('date').to_s)
+    name = "#{date}-#{slug}.md"
+    raise "Duplicate blog article: #{name}" if File.exist?(File.join(source, '_posts', name))
+    metadata = entry.reject { |key, _| %w[source slug].include?(key) }
+    metadata.merge!('layout' => 'post', 'permalink' => "/posts/#{slug}/")
+    write(File.join(source, '_posts', name), YAML.dump(metadata) + "---\n\n" + text)
+  end
 end
 
 { 'images' => 'assets/img', 'files' => 'assets/files', 'image/logo' => 'assets/img/logo', 'pages/data' => '_data',

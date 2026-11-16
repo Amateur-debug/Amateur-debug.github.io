@@ -30,13 +30,13 @@ shutil.copytree(original, fixture, dirs_exist_ok=True, ignore=shutil.ignore_patt
 (fixture / 'notes').mkdir(exist_ok=True)
 (fixture / 'notes/private.md').write_text('PRIVATE-NOTES-NOT-FOR-PUBLICATION', encoding='utf-8')
 # These temporary posts never enter the content repository or live website.
-for n in range(1, 12):
+for n in range(2, 12):
     (fixture / 'posts' / f'2020-01-{n:02}-fixture-{n}.md').write_text(
         f'---\ntitle: Fixture {n}\nlayout: another-theme-layout\ncategories: [Testing]\ntags: [fixture]\n---\n\nTest body {n}.\n', encoding='utf-8')
-    if (fixture / 'pages/en').exists():
-        (fixture / 'posts/en').mkdir(exist_ok=True)
-        (fixture / 'posts/en' / f'2020-01-{n:02}-fixture-{n}.md').write_text(
-            f'---\ntitle: English fixture {n}\ncategories: [Testing]\ntags: [fixture]\n---\n\nEnglish body {n}.\n', encoding='utf-8')
+(fixture / 'notes/published.md').write_text('# Fixture 1\n\nShared body 1.\n\n![Figure](figure.svg)\n', encoding='utf-8')
+(fixture / 'notes/figure.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding='utf-8')
+(fixture / 'notes/private.svg').write_text('PRIVATE-IMAGE-NOT-FOR-PUBLICATION', encoding='utf-8')
+(fixture / 'pages/blog.yml').write_text('articles:\n  - source: notes/published.md\n    slug: fixture-1\n    title: Fixture 1\n    date: 2020-01-01\n', encoding='utf-8')
 (fixture / 'pages/untranslated.md').write_text('---\ntitle: Untranslated\n---\nChinese-only fixture.\n', encoding='utf-8')
 
 for theme in ('chirpy', 'minimal'):
@@ -60,7 +60,7 @@ for theme in ('chirpy', 'minimal'):
     assert 'href="/blog/"' in pagination and 'href="/"' not in pagination
     print(f'PASS {theme}: configuration from pages/, private notes excluded, profile homepage, resume/projects, 10+1 pagination, correct return link.')
     if (fixture / 'pages/en').exists():
-        for route in ('', 'projects/', 'publications/', 'resume/', 'blog/', 'blog/page2/', 'posts/fixture-1/'):
+        for route in ('', 'projects/', 'publications/', 'resume/'):
             zh = (output / route / 'index.html').read_text(encoding='utf-8')
             en = (output / 'en' / route / 'index.html').read_text(encoding='utf-8')
             for text, target, language in [(zh, '/en/' + route, 'en'), (en, '/' + route, 'zh-CN')]:
@@ -71,23 +71,26 @@ for theme in ('chirpy', 'minimal'):
                 assert len([1 for tag, attrs in elements if tag == 'link' and attrs.get('hreflang') in ('en', 'zh-CN')]) == 2
             assert re.search(r'<html\b[^>]*lang="en"', en)
             assert 'href="/en/projects/"' in en and 'href="/en/resume/"' in en
-        en_first = (output / 'en/blog/index.html').read_text(encoding='utf-8')
-        en_second = (output / 'en/blog/page2/index.html').read_text(encoding='utf-8')
-        en_first_main = re.search(r'<main\b[^>]*>(.*?)</main>', en_first, re.S).group(1)
-        en_second_main = re.search(r'<main\b[^>]*>(.*?)</main>', en_second, re.S).group(1)
-        assert len(set(re.findall(r'href="(/en/posts/fixture-\d+/)"', en_first_main))) == 10
-        assert len(set(re.findall(r'href="(/en/posts/fixture-\d+/)"', en_second_main))) == 1
-        assert 'English fixture' in en_first and 'English fixture' not in first
-        assert 'href="/en/blog/"' in en_second
-        assert '学习笔记' not in en_first and '>博客<' not in en_first
+        for route in ('blog/', 'blog/page2/', 'posts/fixture-1/'):
+            redirect = (output / 'en' / route / 'index.html').read_text(encoding='utf-8')
+            assert 'shared-blog-redirect' in redirect
+            assert f'content="0;url=/{route}"' in redirect
+        en_home = (output / 'en/index.html').read_text(encoding='utf-8')
+        assert 'href="/blog/"' in en_home and 'href="/en/blog/"' not in en_home
+        article = (output / 'posts/fixture-1/index.html').read_text(encoding='utf-8')
+        assert 'Shared body 1.' in article and 'PRIVATE-NOTES' not in article
+        assert 'href="/en/" lang="en" hreflang="en"' in article
+        assert '<link rel="alternate" hreflang="en"' not in article
+        assert (output / 'assets/blog/fixture-1/figure.svg').is_file()
+        assert not list(output.rglob('private.svg'))
+        assert not list(output.rglob('*seedvr*')), 'Only manifest entries may be published'
         unpaired = (output / 'untranslated/index.html').read_text(encoding='utf-8')
-        assert 'href="/en/blog/" lang="en" hreflang="en"' in unpaired
+        assert 'href="/en/" lang="en" hreflang="en"' in unpaired
         assert 'no translation for this page' in unpaired
         assert not (output / 'en/notes').exists()
         assert not (output / 'en/site.yml').exists()
         if theme == 'chirpy':
-            zh_search = (output / 'assets/js/data/search.json').read_text(encoding='utf-8')
             en_search = (output / 'en/assets/js/data/search.json').read_text(encoding='utf-8')
-            assert 'English fixture' not in zh_search and 'English fixture' in en_search
-            assert '/en/posts/fixture-' in en_search
-        print(f'PASS {theme}: reciprocal language switches, translated navigation, independent English posts/search/pagination, missing-translation fallback.')
+            assert 'Shared body 1.' in en_search and '/posts/fixture-' in en_search
+            assert '/en/posts/fixture-' not in en_search
+        print(f'PASS {theme}: bilingual pages, shared blog/search/pagination, legacy redirects, manifest-only publication and image isolation.')
