@@ -10,6 +10,7 @@ require 'tmpdir'
 require 'open3'
 require 'net/http'
 require 'uri'
+require 'rbconfig'
 
 ROOT = File.expand_path('..', __dir__)
 BUILD_ROOT = File.join(ROOT, '.build')
@@ -56,6 +57,7 @@ OptionParser.new do |parser|
   parser.banner = 'bundle exec ruby tools/build.rb [--content ../docs] [--theme chirpy]'
   parser.on('--content PATH', 'Use a local content checkout') { |v| options[:content] = File.expand_path(v) }
   parser.on('--theme NAME', 'Override selected_theme for this build only') { |v| options[:theme] = v }
+  parser.on('--locale NAME', 'Build one language (zh-CN or en)') { |v| options[:locale] = v }
   parser.on('--destination PATH', 'Output directory inside .build/') { |v| options[:destination] = File.expand_path(v) }
   parser.on('--check-updates', 'Skip unchanged content on scheduled workflow runs') { options[:check] = true }
   parser.on('--github-output PATH', 'Write the build decision to a GitHub Actions output file') { |v| options[:github_output] = v }
@@ -111,7 +113,9 @@ unless content_root
   content_root = File.join(Dir.mktmpdir('content-', BUILD_ROOT), 'checkout')
   git('clone', '--quiet', '--depth', '1', '--branch', ref, "https://github.com/#{repository}.git", content_root)
 end
-pages_root = File.join(content_root, 'pages')
+locale = options.fetch(:locale, 'zh-CN')
+raise 'Unsupported locale' unless %w[zh-CN en].include?(locale)
+pages_root = File.join(content_root, locale == 'en' ? 'pages/en' : 'pages')
 raise 'Content checkout must contain pages/index.md and pages/site.yml' unless File.file?(File.join(pages_root, 'index.md')) && File.file?(File.join(pages_root, 'site.yml'))
 [theme_root, content_root].each do |directory|
   Dir.glob(File.join(directory, '**', '*'), File::FNM_DOTMATCH).each do |path|
@@ -133,6 +137,10 @@ allowed_profile_keys = %w[title tagline description avatar github twitter social
 raise 'pages/site.yml contains unsupported settings' unless (profile.keys - allowed_profile_keys).empty?
 configuration = merge_config(read_yaml(File.join(theme_root, 'config.yml')), settings)
 configuration = merge_config(configuration, profile)
+configuration['lang'] = locale
+if locale == 'en'
+  configuration['baseurl'] = settings.fetch('baseurl', '').sub(%r{/+\z}, '') + '/en'
+end
 configuration['exclude'] = (Array(configuration['exclude']) + %w[Gemfile Gemfile.lock README.md LICENSE tools themes]).uniq
 write(File.join(source, '_config.yml'), YAML.dump(configuration))
 
@@ -151,11 +159,13 @@ Dir.glob(File.join(pages_root, '*.md')).sort.each do |page|
   end
 end
 FileUtils.mkdir_p(File.join(source, '_posts'))
-Dir.glob(File.join(content_root, 'posts', '*.md')).sort.each do |post|
+posts_root = File.join(content_root, locale == 'en' ? 'posts/en' : 'posts')
+Dir.glob(File.join(posts_root, '*.md')).sort.each do |post|
   name = File.basename(post)
   raise "Blog filename must use YYYY-MM-DD-title.md: #{name}" unless name.match?(/\A\d{4}-\d{2}-\d{2}-.+\.md\z/)
   write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
 end
+
 { 'images' => 'assets/img', 'files' => 'assets/files', 'image/logo' => 'assets/img/logo', 'pages/data' => '_data' }.each do |from, to|
   directory = File.join(content_root, from)
   next unless File.directory?(directory)
@@ -163,6 +173,28 @@ end
   Dir.children(directory).each do |name|
     next if name.start_with?('.')
     FileUtils.cp_r(File.join(directory, name), File.join(source, to))
+  end
+end
+
+# Localized data and page metadata are content inputs. Theme files stay untouched.
+ui = {}
+if locale == 'en'
+  data_root = File.join(pages_root, 'data')
+  Dir.glob(File.join(data_root, '*.yml')).each do |path|
+    next if File.basename(path) == 'ui.yml'
+    FileUtils.cp(path, File.join(source, '_data', File.basename(path)))
+  end
+  ui_path = File.join(data_root, 'ui.yml')
+  ui = read_yaml(ui_path) if File.file?(ui_path)
+  (Dir.glob(File.join(source, '_tabs', '*.md')) +
+    [File.join(source, 'blog', 'index.html'), File.join(source, '404.html')]).each do |path|
+    next unless File.file?(path)
+    text = File.read(path, encoding: 'UTF-8')
+    match = text.match(/\A---\r?\n(.*?)\r?\n---(?:\r?\n|\z)(.*)\z/m)
+    next unless match
+    metadata = YAML.safe_load(match[1], permitted_classes: [Date, Time], aliases: false) || {}
+    %w[title description].each { |key| metadata[key] = ui.fetch(metadata[key], metadata[key]) if metadata[key] }
+    write(path, YAML.dump(metadata) + "---\n" + match[2])
   end
 end
 
@@ -181,4 +213,19 @@ write(File.join(destination, 'site-build.json'), JSON.pretty_generate({
   'theme' => selected, 'content_repository' => repository, 'content_commit' => content_commit,
   'site_commit' => site_commit, 'built_at' => Time.now.utc.iso8601
 }) + "\n")
+
+if !options[:locale] && File.file?(File.join(content_root, 'pages', 'en', 'index.md'))
+  english_output = Dir.mktmpdir('english-', BUILD_ROOT)
+  success = system(RbConfig.ruby, __FILE__, '--content', content_root, '--theme', selected,
+                   '--locale', 'en', '--destination', english_output)
+  raise 'English build failed' unless success
+  FileUtils.cp_r(english_output, File.join(destination, 'en'))
+  translations = read_yaml(File.join(content_root, 'pages', 'en', 'data', 'ui.yml'))
+  translations_path = File.join(source, 'ui-translations.json')
+  write(translations_path, JSON.generate(translations))
+  success = system('python', File.join(ROOT, 'tools', 'localize_site.py'), destination,
+                   '--baseurl', settings.fetch('baseurl', ''), '--url', settings.fetch('url'),
+                   '--translations', translations_path)
+  raise 'Language switch generation failed' unless success
+end
 puts "Built theme=#{selected}, content=#{content_commit[0, 12]}, output=#{destination}"

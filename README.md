@@ -32,6 +32,16 @@
 定时运行会对比已发布网站的 `site-build.json`，未改变的内容不会重新构建部署。
 本仓库代码 push 到 main 时立即触发构建。
 
+## 中英文网站
+
+中文内容位于 `docs/pages/`、`docs/posts/`，英文内容位于 `docs/pages/en/`、`docs/posts/en/`。英文独立页面与中文使用相同文件名；对应文章也使用相同文件名（自定义 permalink 时保持两边一致）。英文站点信息与导航分别使用 `pages/en/site.yml` 和 `pages/en/data/navigation.yml`。
+
+构建脚本分别生成中文 `/` 与英文 `/en/`，使用主题已有的语言设置，并隔离两种语言的文章、搜索和分页。`tools/localize_site.py` 在生成的 HTML 中添加语言切换按钮和 hreflang 链接；主题中固定的中文界面文案通过 `pages/en/data/ui.yml` 翻译。这个步骤只处理构建产物，不修改 `themes/` 下的模板文件。
+
+切换按钮优先跳到对应页面；如果某个页面尚无译文，则跳到另一语言的博客列表，并在按钮提示中说明。站内导航保持当前语言，外部链接和论文 PDF 沿用新标签页打开的设置。
+
+完整构建会自动包括英文站；排查单一语言可使用 `--locale zh-CN` 或 `--locale en`，单语言构建不添加跨语言按钮。语言切换按钮的样式由构建后处理生成，不依赖特定主题。
+
 ## 选择主题
 
 修改 `_config.yml`：
@@ -77,6 +87,7 @@ themes/chirpy/          Chirpy 模板适配
 themes/minimal/         第二套主题
 tools/build.rb          取得内容并组装、构建 Jekyll 站点
 tools/check_site.py     检查生成页面和本地链接
+tools/localize_site.py  为构建产物添加语言切换和界面翻译
 .github/workflows/      GitHub Pages 发布流程
 .build/                 临时标准 Jekyll 目录与生成网页，不提交
 ```
