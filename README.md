@@ -15,7 +15,7 @@
 | 首页 | pages/index.md |
 | 简历 | pages/resume.md |
 | 项目 | pages/projects.md |
-| 博客 | posts/YYYY-MM-DD-title.md，或 pages/blog.yml 选择的 notes/ 笔记 |
+| 博客 | posts/YYYY-MM-DD-title.md，或 pages/blog.yml 选择的 posts/ 笔记 |
 | 个人站点信息 | pages/site.yml |
 | 网站联系入口 | pages/data/contact.yml |
 | 导航条目及顺序 | pages/data/navigation.yml |
@@ -24,7 +24,7 @@
 | 网站标签图标 | pages/icons/ |
 
 博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
-已有技术笔记保存在 `docs/notes/`，通过 `pages/blog.yml` 的 `articles` 列表选择公开文章，配置 `source`、`slug`、`title`、`date`、`description`、`math`、`mermaid`。构建只提取选中的正文和相对引用图片，不复制其他笔记；原始 Markdown 保留原文件名、公式和图片链接。
+已有技术笔记保存在 `docs/posts/`，通过 `pages/blog.yml` 的 `articles` 列表选择公开文章，配置 `source`、`slug`、`title`、`date`、`description`、`math`、`mermaid`。构建只提取选中的正文和相对引用图片，不复制其他笔记；原始 Markdown 保留原文件名、公式和图片链接。
 独立页面放在 `pages/`，网站会生成对应页面；导航入口和顺序由 `pages/data/navigation.yml` 配置，两个主题使用同一份导航数据。
 内容仓库的 README 逐项说明了目录和文件用途。
 网站专用的页面与 YAML 设置集中在 `docs/pages/`；文章、图片和附件分别保存在 `posts/`、`images/`、`files/`，便于独立阅读和复用。

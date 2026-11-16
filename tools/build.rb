@@ -163,12 +163,13 @@ FileUtils.mkdir_p(File.join(source, '_posts'))
 posts_root = File.join(content_root, 'posts')
 Dir.glob(File.join(posts_root, '*.md')).sort.each do |post|
   name = File.basename(post)
+  next if name == 'README.md'
   raise "Blog filename must use YYYY-MM-DD-title.md: #{name}" unless name.match?(/\A\d{4}-\d{2}-\d{2}-.+\.md\z/)
   write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
 end
 
 # Publish selected notes without copying the private knowledge library into Jekyll.
-# The manifest is website-specific; each article has a single source in notes/.
+# The manifest is website-specific; each article has a single source in posts/.
 blog_manifest = File.join(content_root, 'pages', 'blog.yml')
 if File.file?(blog_manifest)
   entries = read_yaml(blog_manifest).fetch('articles')
@@ -177,7 +178,7 @@ if File.file?(blog_manifest)
     slug = entry.fetch('slug')
     raise 'Invalid blog slug' unless slug.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
     note = File.expand_path(entry.fetch('source'), content_root)
-    raise 'Published notes must be inside notes/' unless note.start_with?(File.join(content_root, 'notes') + '/')
+    raise 'Published articles must be inside posts/' unless note.start_with?(File.join(content_root, 'posts') + '/')
     text = File.read(note, encoding: 'UTF-8')
     text = text.sub(/\A# [^\n]+\r?\n+/, '')
     # Kramdown uses $$ for inline math as well; leave fenced and inline code intact.

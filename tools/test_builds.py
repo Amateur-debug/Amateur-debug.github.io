@@ -27,16 +27,16 @@ shutil.copytree(original, fixture, dirs_exist_ok=True, ignore=shutil.ignore_patt
 (fixture / 'site.yml').write_text('private_personal_setting: do-not-read\n', encoding='utf-8')
 (fixture / 'data').mkdir(exist_ok=True)
 (fixture / 'data/contact.yml').write_text('invalid: [\n', encoding='utf-8')
-(fixture / 'notes').mkdir(exist_ok=True)
-(fixture / 'notes/private.md').write_text('PRIVATE-NOTES-NOT-FOR-PUBLICATION', encoding='utf-8')
+(fixture / 'posts/library').mkdir(parents=True, exist_ok=True)
+(fixture / 'posts/library/private.md').write_text('PRIVATE-NOTES-NOT-FOR-PUBLICATION', encoding='utf-8')
 # These temporary posts never enter the content repository or live website.
 for n in range(2, 12):
     (fixture / 'posts' / f'2020-01-{n:02}-fixture-{n}.md').write_text(
         f'---\ntitle: Fixture {n}\nlayout: another-theme-layout\ncategories: [Testing]\ntags: [fixture]\n---\n\nTest body {n}.\n', encoding='utf-8')
-(fixture / 'notes/published.md').write_text('# Fixture 1\n\nShared body 1.\n\n![Figure](figure.svg)\n', encoding='utf-8')
-(fixture / 'notes/figure.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding='utf-8')
-(fixture / 'notes/private.svg').write_text('PRIVATE-IMAGE-NOT-FOR-PUBLICATION', encoding='utf-8')
-(fixture / 'pages/blog.yml').write_text('articles:\n  - source: notes/published.md\n    slug: fixture-1\n    title: Fixture 1\n    date: 2020-01-01\n', encoding='utf-8')
+(fixture / 'posts/library/published.md').write_text('# Fixture 1\n\nShared body 1.\n\n![Figure](figure.svg)\n', encoding='utf-8')
+(fixture / 'posts/library/figure.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding='utf-8')
+(fixture / 'posts/library/private.svg').write_text('PRIVATE-IMAGE-NOT-FOR-PUBLICATION', encoding='utf-8')
+(fixture / 'pages/blog.yml').write_text('articles:\n  - source: posts/library/published.md\n    slug: fixture-1\n    title: Fixture 1\n    date: 2020-01-01\n', encoding='utf-8')
 (fixture / 'pages/untranslated.md').write_text('---\ntitle: Untranslated\n---\nChinese-only fixture.\n', encoding='utf-8')
 
 for theme in ('chirpy', 'minimal'):
@@ -83,7 +83,7 @@ for theme in ('chirpy', 'minimal'):
         assert '<link rel="alternate" hreflang="en"' not in article
         assert (output / 'assets/blog/fixture-1/figure.svg').is_file()
         assert not list(output.rglob('private.svg'))
-        assert not list(output.rglob('*seedvr*')), 'Only manifest entries may be published'
+        assert not list(output.rglob('*seedvr*')), 'Only selected library entries may be published'
         unpaired = (output / 'untranslated/index.html').read_text(encoding='utf-8')
         assert 'href="/en/" lang="en" hreflang="en"' in unpaired
         assert 'no translation for this page' in unpaired
