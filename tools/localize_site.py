@@ -1,5 +1,6 @@
 """Add language navigation to generated HTML without changing theme templates."""
 import argparse
+import hashlib
 import html
 from html.parser import HTMLParser
 import json
@@ -65,22 +66,28 @@ def route(path):
 
 def localize(site, baseurl, url, translations):
     pages = {p.relative_to(site) for p in site.rglob('*.html')}
-    css = site / 'assets/css/language-switch.css'
-    css.parent.mkdir(parents=True, exist_ok=True)
-    css.write_text('''
+    css_text = '''
 .site-language-switch { display: flex; justify-content: flex-end; margin: .5rem 0 1rem; }
-.site-language-switch a { display: inline-flex; align-items: center; min-height: 1.75rem;
-  padding: .2rem .4rem; border: 0; border-radius: .25rem;
-  font-size: .75rem; line-height: 1.4; font-weight: 500; color: inherit; text-decoration: none; }
-.site-language-switch a:hover { opacity: .75; }
+.site-language-switch a { display: inline-flex; align-items: center; justify-content: center;
+  gap: .25rem; min-height: 1.75rem; padding: .2rem .35rem; border: 0; border-radius: .25rem;
+  background: transparent; box-shadow: none; white-space: nowrap; font-size: .8125rem;
+  line-height: 1; font-weight: 400; color: var(--text-muted-color, inherit); text-decoration: none; }
+.site-language-switch .is-current { font-weight: 600; color: var(--text-color, inherit); }
+.site-language-switch .language-divider { opacity: .35; font-size: .75rem; }
+.site-language-switch a:hover { background: var(--button-bg, rgba(128,128,128,.08)); }
 .site-language-switch a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-#topbar .site-language-switch { flex-shrink: 0; margin: 0 .65rem 0 auto; }
+#topbar .site-language-switch { flex-shrink: 0; margin: 0 .75rem 0 auto; }
 @media (max-width: 991.98px) {
   #topbar #topbar-title { flex: 1; min-width: 0; width: auto; overflow: hidden;
     white-space: nowrap; text-overflow: ellipsis; }
   #topbar .site-language-switch { margin: 0 .25rem; }
 }
-'''.lstrip(), encoding='utf-8')
+'''.lstrip()
+    # New HTML must never reuse a cached stylesheet from an earlier button design.
+    css_name = 'language-switch-' + hashlib.sha256(css_text.encode()).hexdigest()[:12] + '.css'
+    css = site / 'assets/css' / css_name
+    css.parent.mkdir(parents=True, exist_ok=True)
+    css.write_text(css_text, encoding='utf-8')
     for relative in sorted(pages):
         english = relative.parts[0] == 'en'
         counterpart = Path(*relative.parts[1:]) if english else Path('en') / relative
@@ -89,9 +96,12 @@ def localize(site, baseurl, url, translations):
         lang = 'zh-CN' if english else 'en'
         title = ('切换到中文' if english else 'Switch to English') if paired else (
             '查看中文博客（此页面暂无对应译文）' if english else 'View the English blog (no translation for this page)')
+        zh_class, en_class = ('', 'is-current') if english else ('is-current', '')
         button = (f'<nav class="site-language-switch" aria-label="Language">'
                   f'<a href="{html.escape(baseurl + route(target), quote=True)}" lang="{lang}" hreflang="{lang}" '
-                  f'title="{html.escape(title, quote=True)}" aria-label="{html.escape(title, quote=True)}">中/EN</a></nav>')
+                  f'title="{html.escape(title, quote=True)}" aria-label="{html.escape(title, quote=True)}">'
+                  f'<span class="{zh_class}" lang="zh-CN">中</span><span class="language-divider" aria-hidden="true">/</span>'
+                  f'<span class="{en_class}" lang="en">EN</span></a></nav>')
         path = site / relative
         text = path.read_text(encoding='utf-8')
         if english:
@@ -106,7 +116,7 @@ def localize(site, baseurl, url, translations):
             text, count = re.subn(r'(<header\b[^>]*>)', lambda m: m[1] + button, text, count=1)
         if count != 1:
             raise ValueError(f'Cannot place language switch: {relative}')
-        head = f'<link rel="stylesheet" href="{html.escape(baseurl, quote=True)}/assets/css/language-switch.css">'
+        head = f'<link rel="stylesheet" href="{html.escape(baseurl, quote=True)}/assets/css/{css_name}">'
         if paired:
             chinese_path, english_path = (counterpart, relative) if english else (relative, counterpart)
             for language, page in [('zh-CN', chinese_path), ('en', english_path), ('x-default', chinese_path)]:
