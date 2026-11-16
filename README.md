@@ -52,7 +52,8 @@ bundle exec ruby tools/build.rb --content ../docs
 python tools/check_site.py .build/output
 ```
 
-不提供 `--content` 时，会自动获取配置中指定的 GitHub 内容仓库。临时切换主题可添加 `--theme minimal`。
+私有内容仓库建议先通过自己的 GitHub 身份克隆到相邻的 docs 目录，再使用 `--content ../docs`。
+临时切换主题可添加 `--theme minimal`。
 完整验证两套主题和 11 篇文章的分页：`python tools/test_builds.py ../docs`。测试文章只写入 `.build/`。
 预览生成结果：
 
@@ -81,7 +82,8 @@ Jekyll 的标准目录在 `.build/` 内组装，不向工程仓库重复提交�
 ## GitHub Pages
 
 在本仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
-内容仓库为公开仓库，工作流无需额外的个人令牌或跨仓库写入密钥。
-以后若改为私有，需要为工作流另配内容仓库读取权限。
+内容仓库为私有仓库。Actions 使用仅对 docs 有只读权限的部署密钥读取内容，私钥保存在本站仓库的 `DOCS_DEPLOY_KEY` Actions Secret 中。
+该密钥无法向 docs 写入；本地编辑和 push 继续使用你自己的 GitHub 身份。
+网站和构建后的页面仍然公开。仓库可见性控制源文件的访问，不会使已发布的网页变成私有。
 
 Chirpy 源码：https://github.com/cotes2020/jekyll-theme-chirpy 。保留 MIT 许可；个人正文的授权独立于主题代码。

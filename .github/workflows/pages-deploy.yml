@@ -5,7 +5,7 @@ on:
     branches: [main, master]
     paths-ignore: [README.md, LICENSE]
   workflow_dispatch:
-  # Check the public content repository without a cross-repository credential.
+  # Check for updates in the private content repository.
   schedule:
     - cron: '7,22,37,52 * * * *'
 
@@ -25,19 +25,29 @@ jobs:
       publish: ${{ steps.content.outputs.build }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Read private content repository
+        uses: actions/checkout@v7
+        with:
+          repository: Amateur-debug/docs
+          ref: main
+          path: .content
+          ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
+          persist-credentials: false
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4'
           bundler-cache: true
       - name: Check for content changes
         id: content
-        run: bundle exec ruby tools/build.rb --check-updates --github-output "$GITHUB_OUTPUT"
+        run: bundle exec ruby tools/build.rb --content .content --check-updates --github-output "$GITHUB_OUTPUT"
       - name: Set up GitHub Pages
         if: steps.content.outputs.build == 'true'
         uses: actions/configure-pages@v6
       - name: Assemble and build site
         if: steps.content.outputs.build == 'true'
-        run: bundle exec ruby tools/build.rb
+        run: bundle exec ruby tools/build.rb --content .content
         env:
           JEKYLL_ENV: production
       - name: Check generated pages and local links

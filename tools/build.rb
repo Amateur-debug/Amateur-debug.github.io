@@ -76,7 +76,11 @@ if options[:check]
   changed = true
   if ENV['GITHUB_EVENT_NAME'] == 'schedule'
     begin
-      revision = git('ls-remote', '--exit-code', "https://github.com/#{repository}.git", "refs/heads/#{ref}").split.first
+      revision = if options[:content]
+                   git('-C', options[:content], 'rev-parse', 'HEAD')
+                 else
+                   git('ls-remote', '--exit-code', "https://github.com/#{repository}.git", "refs/heads/#{ref}").split.first
+                 end
       url = settings.fetch('url').sub(%r{/+\z}, '') + settings.fetch('baseurl', '') + '/site-build.json'
       uri = URI(url)
       response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https', open_timeout: 10, read_timeout: 10) do |http|
