@@ -19,6 +19,7 @@
 | 个人站点信息 | pages/site.yml |
 | 网站联系入口 | pages/data/contact.yml |
 | 图片与 PDF | images/、files/ |
+| 网站专用图片与机构 Logo | pages/images/ |
 
 博客文章直接在 `posts/` 中新建，使用 `YYYY-MM-DD-title.md` 命名，并在开头的 YAML front matter 中设置标题等信息。
 论文列表可直接新建为 `pages/publications.md`，网站会自动增加页面与导航。
@@ -79,7 +80,7 @@ tools/check_site.py     检查生成页面和本地链接
 .build/                 临时标准 Jekyll 目录与生成网页，不提交
 ```
 
-pages/index.md → 临时站点 index.md；其他 pages/*.md → _tabs/；pages/site.yml → 合并进临时站点配置；pages/data/ → _data/；posts/*.md → _posts/；images/ → assets/img/；files/ → assets/files/。
+pages/index.md → 临时站点 index.md；其他 pages/*.md → _tabs/；pages/site.yml → 合并进临时站点配置；pages/data/ → _data/；pages/images/ → assets/site/；posts/*.md → _posts/；images/ → assets/img/；files/ → assets/files/。
 Jekyll 的标准目录在 `.build/` 内组装，不向工程仓库重复提交正文。
 
 ## GitHub Pages
