@@ -29,3 +29,7 @@ assets/js/dist
 *~
 .DS_Store
 Thumbs.db
+
+# Assembled source and generated pages
+.build/
+.content/

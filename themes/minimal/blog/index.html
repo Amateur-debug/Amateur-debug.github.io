@@ -1,0 +1,21 @@
+---
+layout: default
+title: 博客
+---
+<h1>博客</h1>
+<p class="tagline">学习笔记、项目记录，以及值得留下的想法。</p>
+{% if site.posts.size == 0 %}
+  <p>文章还在准备中，欢迎之后再来看看。</p>
+{% endif %}
+<ul class="post-list">
+  {% for post in paginator.posts %}
+    <li><time>{{ post.date | date: '%Y-%m-%d' }}</time><a href="{{ post.url | relative_url }}">{{ post.title }}</a><p>{{ post.excerpt | strip_html | truncate: 150 }}</p></li>
+  {% endfor %}
+</ul>
+{% if paginator.total_pages > 1 %}
+  <nav class="pagination" aria-label="博客分页">
+    {% if paginator.previous_page %}<a href="{{ paginator.previous_page_path | relative_url }}">← 上一页</a>{% endif %}
+    <span>{{ paginator.page }} / {{ paginator.total_pages }}</span>
+    {% if paginator.next_page %}<a href="{{ paginator.next_page_path | relative_url }}">下一页 →</a>{% endif %}
+  </nav>
+{% endif %}

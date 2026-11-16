@@ -1,70 +1,87 @@
-# Xingyu CHEN · Chirpy 个人主页
+# 个人网站工程
 
-首页是个人简介，博客在 `/blog/`，保留 Chirpy 7.6.0 的文章、搜索、分类、标签、归档与深浅色切换。
+两个仓库分工：
 
-## 发布到 GitHub Pages
+- 本仓库：https://github.com/Amateur-debug/Amateur-debug.github.io —— Jekyll、主题、构建和发布。
+- 内容仓库：https://github.com/Amateur-debug/docs —— 简介、简历、项目、博客、图片和附件。
+- 网站：https://amateur-debug.github.io/
 
-1. 登录 Amateur-debug，创建公开仓库 `amateur-debug.github.io`。若已有网站，先保存原内容，再合并此版本。
-2. 将本文件夹内的全部文件上传到仓库根目录，包含 `.github/workflows/pages-deploy.yml` 和 `.nojekyll` 等隐藏文件。不要上传外层文件夹。
-3. 在仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
-4. 提交到 `main` 分支后，在 **Actions** 等待 **Build and Deploy** 成功。
-5. 访问 https://amateur-debug.github.io/ 。
+## 写内容
 
-GitHub 网页上传可能遗漏隐藏文件夹，请检查 `.github/workflows/pages-deploy.yml` 确实存在；也可以通过 Git 客户端一次性提交所有文件。
-
-## 平时修改哪里
+在 `docs` 仓库编辑：
 
 | 内容 | 文件 |
 | --- | --- |
-| 首页个人简介 | `index.md` |
-| 侧栏姓名、一句话介绍、站点信息 | `_config.yml` |
-| 头像 | `assets/img/avatar.svg`，可换成照片并修改配置的 avatar |
-| 联系方式入口 | `_data/contact.yml` |
-| 项目介绍 | `_tabs/projects.md` |
-| 博客文章 | `_posts/YYYY-MM-DD-title.md` |
-| 论文页面示例 | `docs/examples/publications.md` |
-| 文章示例 | `docs/examples/2026-11-16-first-post.md` |
+| 首页 | pages/index.md |
+| 简历 | pages/resume.md |
+| 项目 | pages/projects.md |
+| 博客 | posts/YYYY-MM-DD-title.md |
+| 个人站点信息 | site.yml |
+| 图片与 PDF | images/、files/ |
 
-初始版本没有发布示例文章。将文章示例复制到 `_posts/` 后替换内容，提交即可发布。将论文示例复制到 `_tabs/` 后替换内容，即可增加论文页面。
+博客示例在 `docs/examples/` 中，将其复制到 `posts/` 后修改内容即可发布。
+论文页示例复制到 `pages/publications.md` 后会自动增加页面与导航。
 
-首页姓名和项目简介根据 https://github.com/Amateur-debug 的公开资料整理；正文为可修改的初稿，头像为姓名缩写，未添加未提供的学历、工作经历、邮箱或论文。
+内容更新后，网站约每 15 分钟检查一次更新（GitHub 调度可能延迟）。
+需要立即发布时，在本仓库 **Actions → Build and Deploy → Run workflow**。
+定时运行会对比已发布网站的 `site-build.json`，未改变的内容不会重新构建部署。
+本仓库代码 push 到 main 时立即触发构建。
 
-## 本地预览
+## 选择主题
 
-准备 Ruby 3.4 和 Bundler 后：
+修改 `_config.yml`：
+
+```yaml
+selected_theme: chirpy
+```
+
+已适配主题：
+
+- `chirpy`：Chirpy 7.6.0，保留个人简介首页、独立博客、搜索、分类和标签。
+- `minimal`：轻量主题，支持相同个人内容和博客分页，跟随系统深浅色。
+
+主题目录保存模板与配置，不保存个人正文。添加新主题时需提供 `config.yml`、首页 profile 布局、page/post 布局和 blog/index.html；完成适配后，现有 Markdown 可复用。
+
+## 本地构建
+
+准备 Ruby 3.4、Bundler，将两个仓库克隆到相邻目录：
 
 ```sh
 bundle install
-bundle exec jekyll serve
+bundle exec ruby tools/build.rb --content ../docs
+python tools/check_site.py .build/output
 ```
 
-打开 http://127.0.0.1:4000/ 。Windows 可按 Chirpy 官方教程使用 Dev Container。
+不提供 `--content` 时，会自动获取配置中指定的 GitHub 内容仓库。临时切换主题可添加 `--theme minimal`。
+完整验证两套主题和 11 篇文章的分页：`python tools/test_builds.py ../docs`。测试文章只写入 `.build/`。
+预览生成结果：
 
-## 首页与博客分开的实现
+```sh
+python -m http.server 4000 --directory .build/output
+```
 
-- `index.md` 使用 `page` 布局，直接生成个人简介首页。
-- `blog/index.html` 使用 `home` 布局，博客分页路径为 `/blog/page:num/`。
-- 对侧栏、顶部导航、页面标题、分页链接作了小范围覆盖，确保博客第一屏和分页不会指回个人首页。
-- `_layouts/home.html` 保留原版文章卡片，加入博客标题和无文章时的提示。
-- 自定义样式仅添加于 `assets/css/jekyll-theme-chirpy.scss` 末尾。
-- 关闭了初始离线缓存，避免修改内容时旧页面持续被缓存；后续可在 `_config.yml` 打开 PWA。
+浏览 http://127.0.0.1:4000/ 。生成的网页没有服务器端依赖，静态服务器即可预览。
 
-升级 Chirpy 时，请对照上游检查 `_includes/` 和 `_layouts/home.html` 的覆盖文件。
+## 目录结构
 
-## 来源与许可
+```text
+_config.yml             站点地址、内容仓库、所选主题
+Gemfile / Gemfile.lock   构建依赖
+themes/chirpy/          Chirpy 模板适配
+themes/minimal/         第二套主题
+tools/build.rb          取得内容并组装、构建 Jekyll 站点
+tools/check_site.py     检查生成页面和本地链接
+.github/workflows/      GitHub Pages 发布流程
+.build/                 临时标准 Jekyll 目录与生成网页，不提交
+```
 
-- Chirpy：https://github.com/cotes2020/jekyll-theme-chirpy
-- Starter：https://github.com/cotes2020/chirpy-starter
-- 官方教程：https://chirpy.cotes.page/posts/getting-started/
+pages/index.md → 临时站点 index.md；其他 pages/*.md → _tabs/；posts/*.md → _posts/；images/ → assets/img/；files/ → assets/files/。
+Jekyll 的标准目录在 `.build/` 内组装，不向工程仓库重复提交正文。
 
-主题与 Starter 为 MIT 许可，保留原始 LICENSE 和页脚出处。你的个人资料及文章不因使用该主题而自动采用 MIT；文章授权按你的选择设置。
+## GitHub Pages
 
-## 已完成的验证
+在本仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
+内容仓库为公开仓库，工作流无需额外的个人令牌或跨仓库写入密钥。
+以后若改为私有，需要为工作流另配内容仓库读取权限。
 
-- Jekyll 4.4.1 + Chirpy 7.6.0 的 production 构建通过。
-- 初始站点 7 个 HTML 页面的本地页面和资源链接检查通过。
-- 在独立测试副本中加入 11 篇文章，生成 21 个 HTML 页面；验证 10+1 篇的博客分页和返回博客第一页的链接。
-- 确认首页始终是个人简介，未因分页而变成文章列表。
-- 浏览器验证了首页、博客入口与 390px 手机布局；没有横向溢出。
-- 示例文章未发布，文章和论文示例仅在 docs/examples 中供后续复制。
-- GitHub Actions 云端部署尚未执行；本地已验证构建结果。
+Chirpy 源码：https://github.com/cotes2020/jekyll-theme-chirpy 。保留 MIT 许可；个人正文的授权独立于主题代码。

@@ -1,0 +1,179 @@
+# frozen_string_literal: true
+
+require 'yaml'
+require 'json'
+require 'date'
+require 'time'
+require 'fileutils'
+require 'optparse'
+require 'tmpdir'
+require 'open3'
+require 'net/http'
+require 'uri'
+
+ROOT = File.expand_path('..', __dir__)
+BUILD_ROOT = File.join(ROOT, '.build')
+
+def read_yaml(path)
+  value = YAML.safe_load(File.read(path, encoding: 'UTF-8'), permitted_classes: [Date, Time], aliases: false)
+  raise "Expected a YAML mapping: #{path}" unless value.is_a?(Hash)
+  value
+end
+
+def merge_config(base, extra)
+  base.merge(extra) { |_key, old, value| old.is_a?(Hash) && value.is_a?(Hash) ? merge_config(old, value) : value }
+end
+
+def git(*args)
+  output, error, status = Open3.capture3('git', *args)
+  raise "Git failed: #{error.strip}" unless status.success?
+  output.strip
+end
+
+def write(path, value)
+  FileUtils.mkdir_p(File.dirname(path))
+  File.write(path, value, encoding: 'UTF-8')
+end
+
+def markdown(path, defaults)
+  text = File.read(path, encoding: 'UTF-8')
+  match = text.match(/\A---\r?\n(.*?)\r?\n---(?:\r?\n|\z)(.*)\z/m)
+  if match
+    metadata = YAML.safe_load(match[1], permitted_classes: [Date, Time], aliases: false) || {}
+    raise "Invalid front matter: #{path}" unless metadata.is_a?(Hash)
+    text = match[2]
+  else
+    metadata = {}
+  end
+  # Layout and output URL belong to the site/theme adapter, not to the content repository.
+  metadata = defaults.merge(metadata).merge(defaults.select { |key, _| %w[layout permalink].include?(key) })
+  text = text.gsub(/\]\((\/(?!\/)[^)\s]+)\)/) { "]({{ '#{Regexp.last_match(1).gsub("'", '%27')}' | relative_url }})" }
+  YAML.dump(metadata) + "---\n\n" + text.lstrip
+end
+
+options = {}
+OptionParser.new do |parser|
+  parser.banner = 'bundle exec ruby tools/build.rb [--content ../docs] [--theme chirpy]'
+  parser.on('--content PATH', 'Use a local content checkout') { |v| options[:content] = File.expand_path(v) }
+  parser.on('--theme NAME', 'Override selected_theme for this build only') { |v| options[:theme] = v }
+  parser.on('--destination PATH', 'Output directory inside .build/') { |v| options[:destination] = File.expand_path(v) }
+  parser.on('--check-updates', 'Skip unchanged content on scheduled workflow runs') { options[:check] = true }
+  parser.on('--github-output PATH', 'Write the build decision to a GitHub Actions output file') { |v| options[:github_output] = v }
+end.parse!
+
+settings = read_yaml(File.join(ROOT, '_config.yml'))
+selected = options[:theme] || settings.fetch('selected_theme')
+raise 'Invalid theme name' unless selected.match?(/\A[a-z0-9][a-z0-9-]*\z/)
+theme_root = File.join(ROOT, 'themes', selected)
+raise "Unknown theme: #{selected}" unless File.file?(File.join(theme_root, 'config.yml'))
+repository = settings.fetch('content_repository')
+raise 'Invalid content repository' unless repository.match?(%r{\A[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\z})
+ref = settings.fetch('content_ref', 'main')
+raise 'Invalid content branch or tag' unless ref.match?(%r{\A[A-Za-z0-9][A-Za-z0-9_./-]*\z}) && !ref.include?('..')
+site_commit = ENV['GITHUB_SHA'] || git('-C', ROOT, 'rev-parse', 'HEAD')
+
+if options[:check]
+  changed = true
+  if ENV['GITHUB_EVENT_NAME'] == 'schedule'
+    begin
+      revision = git('ls-remote', '--exit-code', "https://github.com/#{repository}.git", "refs/heads/#{ref}").split.first
+      url = settings.fetch('url').sub(%r{/+\z}, '') + settings.fetch('baseurl', '') + '/site-build.json'
+      uri = URI(url)
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https', open_timeout: 10, read_timeout: 10) do |http|
+        http.get(uri.request_uri, { 'Cache-Control' => 'no-cache' })
+      end
+      previous = JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
+      changed = !(revision && previous && previous['content_commit'] == revision && previous['site_commit'] == site_commit && previous['theme'] == selected)
+    rescue StandardError => error
+      warn "Update comparison unavailable; attempt a fresh build (#{error.class})."
+    end
+  end
+  decision = "build=#{changed}\n"
+  File.open(options[:github_output], 'a') { |file| file.write(decision) } if options[:github_output]
+  puts decision
+  exit
+end
+
+FileUtils.mkdir_p(BUILD_ROOT)
+source = Dir.mktmpdir('source-', BUILD_ROOT)
+destination = options[:destination] || File.join(BUILD_ROOT, 'output')
+# Jekyll cleans its destination. Keep all generated output inside this project's .build/.
+destination = File.expand_path(destination)
+raise 'Destination must be inside the site .build directory' unless destination.start_with?(BUILD_ROOT + File::SEPARATOR) || destination.start_with?(BUILD_ROOT + '/')
+raise 'Destination must not be a symlink' if File.symlink?(destination)
+
+content_root = options[:content]
+unless content_root
+  content_root = File.join(Dir.mktmpdir('content-', BUILD_ROOT), 'checkout')
+  git('clone', '--quiet', '--depth', '1', '--branch', ref, "https://github.com/#{repository}.git", content_root)
+end
+raise 'Content checkout must contain pages/index.md and site.yml' unless File.file?(File.join(content_root, 'pages/index.md')) && File.file?(File.join(content_root, 'site.yml'))
+[theme_root, content_root].each do |directory|
+  Dir.glob(File.join(directory, '**', '*'), File::FNM_DOTMATCH).each do |path|
+    next if path.include?('/.git/') || path.end_with?('/.git')
+    raise "Symlink is not supported in site inputs: #{path}" if File.symlink?(path)
+  end
+end
+
+%w[_layouts _includes _sass _data _tabs assets blog].each do |directory|
+  path = File.join(theme_root, directory)
+  FileUtils.cp_r(path, source) if File.directory?(path)
+end
+%w[feed.xml sitemap.xml 404.html robots.txt].each do |name|
+  path = File.join(theme_root, name)
+  FileUtils.cp(path, source) if File.file?(path)
+end
+profile = read_yaml(File.join(content_root, 'site.yml'))
+allowed_profile_keys = %w[title tagline description avatar github twitter social]
+raise 'site.yml contains unsupported settings' unless (profile.keys - allowed_profile_keys).empty?
+configuration = merge_config(read_yaml(File.join(theme_root, 'config.yml')), settings)
+configuration = merge_config(configuration, profile)
+configuration['exclude'] = (Array(configuration['exclude']) + %w[Gemfile Gemfile.lock README.md LICENSE tools themes]).uniq
+write(File.join(source, '_config.yml'), YAML.dump(configuration))
+
+page_icons = { 'projects' => 'fas fa-code', 'resume' => 'fas fa-file-alt', 'publications' => 'fas fa-book-open' }
+page_order = { 'projects' => 0, 'resume' => 1, 'publications' => 2 }
+Dir.glob(File.join(content_root, 'pages', '*.md')).sort.each do |page|
+  name = File.basename(page, '.md')
+  raise "Invalid page filename: #{name}" unless name.match?(/\A[a-z0-9][a-z0-9-]*\z/)
+  if name == 'index'
+    write(File.join(source, 'index.md'), markdown(page, { 'layout' => 'profile', 'permalink' => '/', 'toc' => false }))
+  else
+    write(File.join(source, '_tabs', name + '.md'), markdown(page, {
+      'layout' => 'page', 'permalink' => "/#{name}/", 'icon' => page_icons.fetch(name, 'fas fa-file'),
+      'order' => page_order.fetch(name, 10), 'toc' => false
+    }))
+  end
+end
+FileUtils.mkdir_p(File.join(source, '_posts'))
+Dir.glob(File.join(content_root, 'posts', '*.md')).sort.each do |post|
+  name = File.basename(post)
+  raise "Blog filename must use YYYY-MM-DD-title.md: #{name}" unless name.match?(/\A\d{4}-\d{2}-\d{2}-.+\.md\z/)
+  write(File.join(source, '_posts', name), markdown(post, { 'layout' => 'post' }))
+end
+{ 'images' => 'assets/img', 'files' => 'assets/files', 'data' => '_data' }.each do |from, to|
+  directory = File.join(content_root, from)
+  next unless File.directory?(directory)
+  FileUtils.mkdir_p(File.join(source, to))
+  Dir.children(directory).each do |name|
+    next if name.start_with?('.')
+    FileUtils.cp_r(File.join(directory, name), File.join(source, to))
+  end
+end
+
+ENV['JEKYLL_ENV'] ||= 'production'
+require 'jekyll'
+Jekyll::PluginManager.require_from_bundler
+Jekyll::Commands::Build.process('source' => source, 'destination' => destination, 'trace' => true)
+content_commit = begin
+  top = git('-C', content_root, 'rev-parse', '--show-toplevel')
+  raise 'Content is not a separate checkout' unless File.expand_path(top).casecmp?(File.expand_path(content_root))
+  git('-C', content_root, 'rev-parse', 'HEAD')
+rescue StandardError
+  'local-uncommitted'
+end
+write(File.join(destination, 'site-build.json'), JSON.pretty_generate({
+  'theme' => selected, 'content_repository' => repository, 'content_commit' => content_commit,
+  'site_commit' => site_commit, 'built_at' => Time.now.utc.iso8601
+}) + "\n")
+puts "Built theme=#{selected}, content=#{content_commit[0, 12]}, output=#{destination}"
