@@ -9,3 +9,4 @@ lang: zh-CN
 timezone: Asia/Shanghai
 paginate: 10
 paginate_path: /blog/page:num/
+pageviews: true

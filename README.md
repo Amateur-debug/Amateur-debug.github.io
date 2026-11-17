@@ -140,3 +140,13 @@ Chirpy 源码：https://github.com/cotes2020/jekyll-theme-chirpy 。保留 MIT �
 在允许的源码目录中新增文件通常无需改规则。如果增加根文件 `new-config.yml`，在放行列表加 `!/new-config.yml`；如果增加根目录 `scripts/`，加 `!/scripts/`。不要为提交构建产物而放行 `.build/` 或 `.content/`。
 
 Git 白名单只控制新文件是否可被 Git 跟踪，不控制网页是否公开，也不会让已经跟踪的文件自动退出版本管理。
+
+### 浏览量统计
+
+每个正文页面底部显示“本页浏览”和“全站浏览”；英文页面显示 Page views / Site views。首页、项目、论文、博客列表、简历以及每篇已发布博客自动接入，之后新增页面和博客也无需单独配置。中英文个人页面按各自 URL 分别累计，博客共用同一个 URL；全站总浏览量汇总同一域名上的访问。
+
+使用 [原版不蒜子](https://busuanzi.ibruce.info/) 的公共计数服务，记录的是 PV（访问次数），刷新也会累计，并非独立访客人数。数据从启用起累计，不能补回历史访问；重新部署不会清零，修改页面路径或域名可能改变计数归属。公共服务的可用性与数据保留由服务方负责，浏览器拦截或网络异常时显示 `—`，不显示虚假的 0。
+
+`tools/add_pageviews.py` 在构建及语言合并完成后为 HTML 注入统计栏，`tools/pageviews.js` 加载统计脚本，未修改 `themes/`。脚本仅在 `_config.yml` 的 `url` 对应正式域名运行，本地与其他域名预览不计数；404 和跳转页不接入，避免跳转重复统计。统计服务会收到访客 IP、浏览器请求信息及所访问页面的 URL，代码不自行写入 Cookie 或 localStorage。页面路径通过服务脚本的 Referrer 策略传递；勿将敏感信息放在公开页面的 URL 查询参数里。
+
+关闭统计：把 `_config.yml` 中的 `pageviews` 改为 `false`，提交并部署即可。样式在 `tools/add_pageviews.py` 中维护。验证用 `node tools/test_pageviews.cjs` 和 `python tools/test_builds.py ../docs`；本地显示 `—` 是正常现象，真实数字需在部署后访问正式网站确认。
