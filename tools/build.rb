@@ -12,6 +12,7 @@ require 'net/http'
 require 'uri'
 require 'rbconfig'
 require 'digest'
+require 'cgi'
 
 ROOT = File.expand_path('..', __dir__)
 BUILD_ROOT = File.join(ROOT, '.build')
@@ -307,5 +308,24 @@ if !options[:locale] && settings.fetch('pageviews', true)
   success = system('python', File.join(ROOT, 'tools', 'add_pageviews.py'), destination,
                    '--url', settings.fetch('url'), '--baseurl', settings.fetch('baseurl', ''))
   raise 'Page view counter generation failed' unless success
+end
+# Keep analytics independent of the selected theme and count shared blog URLs once.
+if !options[:locale] && settings.dig('umami', 'website_id')
+  tracking = settings.fetch('umami')
+  website_id = tracking.fetch('website_id')
+  raise 'Invalid Umami website ID' unless website_id.match?(/\A[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/i)
+  script_url = URI.parse(tracking.fetch('script_url'))
+  raise 'Umami script must use HTTPS' unless script_url.scheme == 'https' && script_url.host
+  domain = URI.parse(settings.fetch('url')).host
+  raise 'Site URL must have a hostname' unless domain
+  script = %(<script defer src="#{CGI.escapeHTML(script_url.to_s)}" data-website-id="#{website_id}" data-domains="#{CGI.escapeHTML(domain)}"></script>)
+  Dir.glob(File.join(destination, '**', '*.html')).each do |path|
+    text = File.read(path, encoding: 'UTF-8')
+    next if File.basename(path) == '404.html' || text.match?(/http-equiv=["']refresh["']/i)
+    next unless text.match?(/<main\b/i)
+    raise "Duplicate analytics tracker: #{path}" if text.include?('data-website-id=')
+    raise "Missing HTML head: #{path}" unless text.match?(/<head\b[^>]*>/i)
+    write(path, text.sub(/<head\b[^>]*>/i) { |tag| tag + script })
+  end
 end
 puts "Built theme=#{selected}, content=#{content_commit[0, 12]}, output=#{destination}"
