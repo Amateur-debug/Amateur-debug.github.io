@@ -9,7 +9,6 @@ lang: zh-CN
 timezone: Asia/Shanghai
 paginate: 10
 paginate_path: /blog/page:num/
-pageviews: true
 umami:
   website_id: e9335f5a-3352-46be-b3e9-ffaf8ad8348d
   script_url: https://cloud.umami.is/script.js

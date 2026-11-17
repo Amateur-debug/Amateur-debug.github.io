@@ -303,12 +303,6 @@ if !options[:locale] && File.file?(File.join(content_root, 'pages', 'en', 'index
                    '--translations', translations_path)
   raise 'Language switch generation failed' unless success
 end
-# Run after language redirects are created, once for the complete public site.
-if !options[:locale] && settings.fetch('pageviews', true)
-  success = system('python', File.join(ROOT, 'tools', 'add_pageviews.py'), destination,
-                   '--url', settings.fetch('url'), '--baseurl', settings.fetch('baseurl', ''))
-  raise 'Page view counter generation failed' unless success
-end
 # Keep analytics independent of the selected theme and count shared blog URLs once.
 if !options[:locale] && settings.dig('umami', 'website_id')
   tracking = settings.fetch('umami')

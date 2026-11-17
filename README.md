@@ -142,16 +142,12 @@ Chirpy 源码：https://github.com/cotes2020/jekyll-theme-chirpy 。保留 MIT �
 
 Git 白名单只控制新文件是否可被 Git 跟踪，不控制网页是否公开，也不会让已经跟踪的文件自动退出版本管理。
 
-### 浏览量统计
+### 访问统计（Umami）
 
-Umami 后台分析通过 `_config.yml` 的 `umami.website_id` 与 `umami.script_url` 配置。网站 ID 是公开标识，不需要密码或 API 密钥；删除 `umami` 配置即可停用。`tools/build.rb` 在中英文页面合并后注入一次官方脚本，覆盖独立页面、博客列表和文章，跳过 404 与跳转页；`data-domains` 限定正式域名，本地预览不发送统计。无需修改主题模板。Umami 的访问趋势、来源等数据在 Umami 后台查看，与下方公开计数器分别统计，数字可能不同。
+只使用 Umami 收集访问统计，不再使用不蒜子或展示其计数栏。新增博客无需添加统计代码，原来不蒜子的数据不会自动迁入 Umami。
 
-每个正文页面底部显示“本页浏览”和“全站浏览”；英文页面显示 Page views / Site views。首页、项目、论文、博客列表、简历以及每篇已发布博客自动接入，之后新增页面和博客也无需单独配置。中英文个人页面按各自 URL 分别累计，博客共用同一个 URL；全站总浏览量汇总同一域名上的访问。
+通过 `_config.yml` 的 `umami.website_id` 与 `umami.script_url` 配置。网站 ID 是公开标识，不需要密码或 API 密钥；删除 `umami` 配置即可停用。`tools/build.rb` 在中英文页面合并后注入一次官方脚本，覆盖独立页面、博客列表和文章，跳过 404 与跳转页；`data-domains` 限定正式域名，本地预览不发送统计。无需修改主题模板。
 
-使用 [开源不蒜子公共服务](https://busuanzi.9420.ltd/)（[源码及 API 文档](https://github.com/soxft/busuanzi/wiki/API)），记录的是 PV（访问次数），刷新也会累计，并非独立访客人数。数据从启用起累计，不能补回历史访问；重新部署不会清零，修改页面路径或域名可能改变计数归属。公共服务的可用性与数据保留由服务方负责，浏览器拦截或网络异常时显示 `—`，不显示虚假的 0。
+访问趋势、来源和页面浏览量在 Umami 后台查看。需要公开展示时，在网站设置中创建 Share URL，可将只读统计面板通过 iframe 嵌入网站；当前尚未配置分享链接。公开面板与自定义数字计数器是不同接入方式，Umami Cloud 免费版没有官方 API 访问权限。参考 [官方公开面板指南](https://docs.umami.is/docs/guides/create-a-public-dashboard) 与 [套餐说明](https://umami.is/pricing)。
 
-`tools/add_pageviews.py` 在构建及语言合并完成后为 HTML 注入统计栏，`tools/pageviews.js` 调用服务的 POST API，一次请求同时取得本页及全站 PV，未修改 `themes/`。脚本仅在 `_config.yml` 的 `url` 对应正式域名运行，本地与其他域名预览不计数；404 和跳转页不接入，避免跳转重复统计。统计服务会收到访客 IP、浏览器请求信息及页面域名、路径；请求不携带 Cookie，不写 localStorage，不发送 URL 查询参数或章节锚点，`/index.html` 也归一到目录地址。网络失败不自动重试，以免服务端已计数时重复累计。该功能不加载第三方可执行脚本。
-
-关闭统计：把 `_config.yml` 中的 `pageviews` 改为 `false`，提交并部署即可。样式在 `tools/add_pageviews.py` 中维护。验证用 `node tools/test_pageviews.cjs` 和 `python tools/test_builds.py ../docs`；本地显示 `—` 是正常现象，真实数字需在部署后访问正式网站确认。
-
-API 使用服务官方脚本当前配置的 `https://bsz.iirose.cn/api`；不要将其替换成不支持浏览器预检请求的网页代理地址。
+验证使用 `python tools/test_builds.py ../docs`，检查中英文页面、共享博客、分页与跳转页的统计脚本是否正确加载。

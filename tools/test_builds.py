@@ -48,16 +48,18 @@ for theme in ('chirpy', 'minimal'):
     for route in ('', 'projects/', 'publications/', 'resume/', 'blog/', 'blog/page2/', 'posts/fixture-1/', 'en/'):
         rendered = (output / route / 'index.html').read_text(encoding='utf-8')
         elements = Elements(rendered).elements
-        for identifier in ('site-pageviews', 'busuanzi_value_page_pv', 'busuanzi_value_site_pv'):
-            assert sum(attrs.get('id') == identifier for _, attrs in elements) == 1
-        assert sum(attrs.get('src', '').startswith('/assets/js/pageviews.js?v=') for tag, attrs in elements if tag == 'script') == 1
+        trackers = [attrs for tag, attrs in elements if tag == 'script' and 'data-website-id' in attrs]
+        assert len(trackers) == 1
+        assert trackers[0]['data-website-id'] == 'e9335f5a-3352-46be-b3e9-ffaf8ad8348d'
+        assert trackers[0]['src'] == 'https://cloud.umami.is/script.js'
+        assert trackers[0]['data-domains'] == 'amateur-debug.github.io'
     for page in output.rglob('*.html'):
         rendered = page.read_text(encoding='utf-8')
+        assert 'busuanzi' not in rendered and 'site-pageviews' not in rendered
         if page.name == '404.html' or 'shared-blog-redirect' in rendered:
-            assert 'id="site-pageviews"' not in rendered
-    assert 'Page views' in (output / 'en/index.html').read_text(encoding='utf-8')
-    assert '本页浏览' in (output / 'index.html').read_text(encoding='utf-8')
-    print(f'PASS {theme}: counters on pages, shared articles and pagination; no double counts on redirects or 404s.')
+            assert 'data-website-id=' not in rendered
+    assert not (output / 'assets/js/pageviews.js').exists()
+    print(f'PASS {theme}: Umami on pages, shared articles and pagination; no duplicate redirect tracking or Busuanzi.')
     first = (output / 'blog/index.html').read_text(encoding='utf-8')
     second = (output / 'blog/page2/index.html').read_text(encoding='utf-8')
     article = (output / 'posts/fixture-1/index.html').read_text(encoding='utf-8')
