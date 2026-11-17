@@ -24,7 +24,8 @@
 | 网站标签图标 | pages/icons/ |
 
 推荐在 `docs/posts/` 的分类目录中维护文章，并在 `docs/pages/blog.yml` 中登记后发布。兼容入口是 `posts/` 根目录下的 `YYYY-MM-DD-title.md`，这类文件带 YAML front matter，无需登记便会发布。
-已有技术笔记保存在 `docs/posts/`，通过 `pages/blog.yml` 的 `articles` 列表选择公开文章，配置 `source`、`slug`、`title`、`date`、`description`、`math`、`mermaid`。构建只提取选中的正文和相对引用图片，不复制其他笔记；原始 Markdown 保留原文件名、公式和图片链接。
+已有技术笔记保存在 `docs/posts/`，通过 `pages/blog.yml` 的 `articles` 列表选择公开文章，配置 `source`、`slug`、`title`、`description`、`math`、`mermaid`。构建只提取选中的正文和相对引用图片，不复制其他笔记；原始 Markdown 保留原文件名、公式和图片链接。
+博客无需填写发布日期；清单末尾的文章排在前面。构建后移除页面、搜索与 SEO 元数据中的博客日期，不修改主题模板。Jekyll 所需日期只在临时构建文件中作为排序键；Atom 的更新时间使用订阅文件生成时间。
 独立页面放在 `pages/`，网站会生成对应页面；导航入口和顺序由 `pages/data/navigation.yml` 配置，两个主题使用同一份导航数据。
 [内容仓库的维护说明](https://github.com/Amateur-debug/docs#日常维护)包含新增博客的完整 YAML 示例、配图规则、撤下文章、添加独立页面与 Git 白名单操作。
 网站专用的页面与 YAML 设置集中在 `docs/pages/`；文章、图片和附件分别保存在 `posts/`、`images/`、`files/`，便于独立阅读和复用。
@@ -121,7 +122,7 @@ Chirpy 源码：https://github.com/cotes2020/jekyll-theme-chirpy 。保留 MIT �
 
 | 问题 | 检查位置 |
 | --- | --- |
-| 新博客不显示 | 确认文章已推送、`pages/blog.yml` 的缩进与 `source` 正确、日期不是未来、部署成功。分类目录不会自动全部公开。 |
+| 新博客不显示 | 确认文章已推送、`pages/blog.yml` 的缩进与 `source` 正确、部署成功。分类目录不会自动全部公开。 |
 | 图片缺失或构建提示找不到图片 | 核对文件名大小写、路径是否使用 `/`、文件是否提交；清单文章的相对图片必须在文章目录内。 |
 | 私有内容下载失败 | 检查网站仓库 Settings → Secrets and variables → Actions 中的 `DOCS_KEY`，以及 docs 仓库匹配的只读 Deploy key。 |
 | 新文件无法提交 | 使用 `git check-ignore -v 路径`，检查 `.gitignore` 白名单。 |

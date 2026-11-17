@@ -1,6 +1,7 @@
 """Integration check: the same Markdown works with both themes and blog pagination."""
 from pathlib import Path
 import re
+import json
 import shutil
 import subprocess
 import sys
@@ -36,7 +37,7 @@ for n in range(2, 12):
 (fixture / 'posts/library/published.md').write_text('# Fixture 1\n\nShared body 1.\n\n![Figure](figure.svg)\n', encoding='utf-8')
 (fixture / 'posts/library/figure.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>', encoding='utf-8')
 (fixture / 'posts/library/private.svg').write_text('PRIVATE-IMAGE-NOT-FOR-PUBLICATION', encoding='utf-8')
-(fixture / 'pages/blog.yml').write_text('articles:\n  - source: posts/library/published.md\n    slug: fixture-1\n    title: Fixture 1\n    date: 2020-01-01\n', encoding='utf-8')
+(fixture / 'pages/blog.yml').write_text('articles:\n  - source: posts/library/published.md\n    slug: fixture-1\n    title: Fixture 1\n', encoding='utf-8')
 (fixture / 'pages/untranslated.md').write_text('---\ntitle: Untranslated\n---\nChinese-only fixture.\n', encoding='utf-8')
 
 for theme in ('chirpy', 'minimal'):
@@ -59,6 +60,16 @@ for theme in ('chirpy', 'minimal'):
     print(f'PASS {theme}: counters on pages, shared articles and pagination; no double counts on redirects or 404s.')
     first = (output / 'blog/index.html').read_text(encoding='utf-8')
     second = (output / 'blog/page2/index.html').read_text(encoding='utf-8')
+    article = (output / 'posts/fixture-1/index.html').read_text(encoding='utf-8')
+    for rendered in (first, second, article):
+        assert 'data-ts=' not in rendered
+        assert 'article:published_time' not in rendered and 'datePublished' not in rendered
+        assert not re.search(r'<time[^>]*>\s*\d{4}[-/]\d{2}[-/]\d{2}', rendered)
+    assert '发表于' not in article
+    assert '<published>' not in (output / 'feed.xml').read_text(encoding='utf-8')
+    for path in output.rglob('search.json'):
+        assert all('date' not in item for item in json.loads(path.read_text(encoding='utf-8')))
+    print(f'PASS {theme}: dateless manifest, no publication dates in blog UI, search or SEO.')
     def main_links(html):
         main = re.search(r'<main\b[^>]*>(.*?)</main>', html, re.S).group(1)
         return set(re.findall(r'href="(/posts/fixture-\d+/)"', main))

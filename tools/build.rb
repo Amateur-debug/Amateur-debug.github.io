@@ -174,9 +174,12 @@ blog_manifest = File.join(content_root, 'pages', 'blog.yml')
 if File.file?(blog_manifest)
   entries = read_yaml(blog_manifest).fetch('articles')
   raise 'blog.yml articles must be a list' unless entries.is_a?(Array)
-  entries.each do |entry|
+  slugs = []
+  entries.each_with_index do |entry, index|
     slug = entry.fetch('slug')
     raise 'Invalid blog slug' unless slug.match?(/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/)
+    raise "Duplicate blog slug: #{slug}" if slugs.include?(slug)
+    slugs << slug
     note = File.expand_path(entry.fetch('source'), content_root)
     raise 'Published articles must be inside posts/' unless note.start_with?(File.join(content_root, 'posts') + '/')
     text = File.read(note, encoding: 'UTF-8')
@@ -197,10 +200,12 @@ if File.file?(blog_manifest)
       FileUtils.cp(asset, File.join(source, relative))
       "![#{alt}]({{ '/#{relative}' | relative_url }})"
     end
-    date = Date.iso8601(entry.fetch('date').to_s)
+    # Jekyll requires dated temporary filenames. These are ordering keys only,
+    # not publication dates; the postprocessor removes them from public output.
+    date = Date.new(1970, 1, 1) + index
     name = "#{date}-#{slug}.md"
     raise "Duplicate blog article: #{name}" if File.exist?(File.join(source, '_posts', name))
-    metadata = entry.reject { |key, _| %w[source slug].include?(key) }
+    metadata = entry.reject { |key, _| %w[source slug date last_modified_at].include?(key) }
     metadata.merge!('layout' => 'post', 'permalink' => "/posts/#{slug}/")
     write(File.join(source, '_posts', name), YAML.dump(metadata) + "---\n\n" + text)
   end
@@ -245,6 +250,10 @@ ENV['JEKYLL_ENV'] ||= 'production'
 require 'jekyll'
 Jekyll::PluginManager.require_from_bundler
 Jekyll::Commands::Build.process('source' => source, 'destination' => destination, 'trace' => true)
+
+# Remove blog dates from rendered output without modifying theme templates.
+success = system('python', File.join(ROOT, 'tools', 'remove_blog_dates.py'), destination)
+raise 'Blog date removal failed' unless success
 
 # Apply personal icons to rendered pages without editing theme templates.
 icons = File.join(destination, 'assets', 'img', 'favicons')
