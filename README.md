@@ -148,7 +148,7 @@ Git 白名单只控制新文件是否可被 Git 跟踪，不控制网页是否�
 
 通过 `_config.yml` 的 `umami.website_id` 与 `umami.script_url` 配置。网站 ID 是公开标识，不需要密码或 API 密钥；删除 `umami` 配置即可停用。`tools/build.rb` 在中英文页面合并后注入一次官方脚本，覆盖独立页面、博客列表和文章，跳过 404 与跳转页；`data-domains` 限定正式域名，本地预览不发送统计。无需修改主题模板。
 
-访问趋势、来源和页面浏览量在 Umami 后台查看。需要公开展示时，在网站设置中创建 Share URL，可将只读统计面板通过 iframe 嵌入网站；当前公开面板为 `https://cloud.umami.is/share/NdHZW9v84S4J5Mk8`，嵌入内容仓库的 `pages/analytics.md` 和 `pages/en/analytics.md`，分别生成 `/analytics/` 与 `/en/analytics/`。中英文首页正文底部提供入口，分别在 `pages/index.md` 和 `pages/en/index.md` 维护；更换分享链接时同步修改两份 Markdown。免费版没有付费套餐的 API 密钥访问能力，但公开分享端点可以返回分享范围内的数据，本网站已实测可用。参考 [官方公开面板指南](https://docs.umami.is/docs/guides/create-a-public-dashboard) 与 [套餐说明](https://umami.is/pricing)。
+访问趋势、来源和页面浏览量在 Umami 后台查看。需要公开展示时，在网站设置中创建 Share URL，可将只读统计面板通过 iframe 嵌入网站；当前公开面板为 `https://cloud.umami.is/share/NdHZW9v84S4J5Mk8`，嵌入内容仓库的 `pages/analytics.md` 和 `pages/en/analytics.md`，分别生成 `/analytics/` 与 `/en/analytics/`。中英文首页页脚底部提供入口，由 `tools/add_umami_counts.py` 与浏览量一起生成；更换分享链接时同步修改两份 Markdown。免费版没有付费套餐的 API 密钥访问能力，但公开分享端点可以返回分享范围内的数据，本网站已实测可用。参考 [官方公开面板指南](https://docs.umami.is/docs/guides/create-a-public-dashboard) 与 [套餐说明](https://umami.is/pricing)。
 
 验证使用 `python tools/test_builds.py ../docs`，检查中英文页面、共享博客、分页与跳转页的统计脚本是否正确加载。
 
@@ -157,3 +157,5 @@ Git 白名单只控制新文件是否可被 Git 跟踪，不控制网页是否�
 `tools/add_umami_counts.py` 注入计数栏，`tools/umami-counts.js` 通过公开分享端点取得只读分享令牌，再并行读取本页和全站统计；只发送 GET 请求，不重复上报访问、不保存令牌、不需要账户密码或私有 API 密钥。正常访问仍由官方脚本记录，显示数字可能稍有延迟。预览、404 和跳转页不读取计数；查询失败显示 `—`，不会伪造零值。
 
 配置位于 `_config.yml` 的 `umami.share_slug`、`umami.api_base`、`umami.show_counts`；将 `show_counts` 设为 `false` 仅关闭简洁计数。公开分享需开启 Overview 和 Filters；撤销分享或 Umami 调整分享接口后需更新配置或适配。验证计数逻辑可运行 `node tools/test_umami_counts.cjs`。
+
+博客首页的板块由内容仓库 `pages/blog.yml` 的 `sections` 和文章 `section` 定义，`tools/group_blog.rb` 在构建目录生成分组列表；文章网址不变，旧分页地址跳转到完整列表。`tools/refine_site.py` 仅在博客首页保留最近更新，并移除页脚主题推广文字；主题源码和许可证保持完整。所有页面浏览量在页脚显示，访问统计入口只在中英文首页页脚显示。

@@ -54,6 +54,11 @@ for theme in ('chirpy', 'minimal'):
         assert trackers[0]['src'] == 'https://cloud.umami.is/script.js'
         assert trackers[0]['data-domains'] == 'amateur-debug.github.io'
         assert rendered.count('id="umami-counts"') == 1
+        footer = re.search(r'<footer\b[^>]*>.*?</footer>', rendered, re.S).group()
+        assert 'id="umami-counts"' in footer
+        assert 'jekyll-theme-chirpy' not in footer
+        assert ('class="site-analytics-link"' in footer) == (route in ('', 'en/'))
+        assert ('id="access-lastmod"' in rendered) == (theme == 'chirpy' and route == 'blog/')
         assert sum(attrs.get('src', '').startswith('/assets/js/umami-counts.js?v=') for tag, attrs in elements if tag == 'script') == 1
     for page in output.rglob('*.html'):
         rendered = page.read_text(encoding='utf-8')
@@ -123,3 +128,21 @@ for theme in ('chirpy', 'minimal'):
             assert 'Shared body 1.' in en_search and '/posts/fixture-' in en_search
             assert '/en/posts/fixture-' not in en_search
         print(f'PASS {theme}: bilingual pages, shared blog/search/pagination, legacy redirects, manifest-only publication and image isolation.')
+
+    manifest_path = fixture / 'pages/blog.yml'
+    flat_manifest = manifest_path.read_text(encoding='utf-8')
+    manifest_path.write_text('sections:\n  - id: engine\n    title: Engine & Graphics\n' +
+                            flat_manifest.replace('    slug:', '    section: engine\n    slug:'), encoding='utf-8')
+    subprocess.run(['ruby', '-S', 'bundle', 'exec', 'ruby', 'tools/build.rb', '--content', str(fixture),
+                    '--theme', theme, '--destination', str(output)], cwd=root, check=True)
+    subprocess.run([sys.executable, 'tools/check_site.py', str(output)], cwd=root, check=True)
+    grouped = (output / 'blog/index.html').read_text(encoding='utf-8')
+    assert 'Engine &amp; Graphics' in grouped
+    assert 'class="blog-section"' in grouped
+    assert len(main_links(grouped)) == 11, 'Grouped index must include legacy root posts too'
+    assert 'PRIVATE-NOTES' not in grouped
+    redirect = (output / 'blog/page2/index.html').read_text(encoding='utf-8')
+    assert 'content="0;url=/blog/"' in redirect
+    assert 'id="umami-counts"' not in redirect
+    manifest_path.write_text(flat_manifest, encoding='utf-8')
+    print(f'PASS {theme}: grouped index, escaped headings, legacy posts and pagination redirects.')

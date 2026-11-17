@@ -117,6 +117,8 @@ def localize(site, baseurl, url, translations):
                   f'<span class="{en_class}" lang="en">EN</span></a></nav>')
         path = site / relative
         text = path.read_text(encoding='utf-8')
+        if re.search(r'http-equiv=["\']refresh["\']', text, re.I):
+            continue
         if english:
             parser = TranslateHTML(translations)
             parser.feed(text)

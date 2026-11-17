@@ -13,6 +13,7 @@ require 'uri'
 require 'rbconfig'
 require 'digest'
 require 'cgi'
+require_relative 'group_blog'
 
 ROOT = File.expand_path('..', __dir__)
 BUILD_ROOT = File.join(ROOT, '.build')
@@ -173,7 +174,8 @@ end
 # The manifest is website-specific; each article has a single source in posts/.
 blog_manifest = File.join(content_root, 'pages', 'blog.yml')
 if File.file?(blog_manifest)
-  entries = read_yaml(blog_manifest).fetch('articles')
+  manifest = read_yaml(blog_manifest)
+  entries = manifest.fetch('articles')
   raise 'blog.yml articles must be a list' unless entries.is_a?(Array)
   slugs = []
   entries.each_with_index do |entry, index|
@@ -210,6 +212,7 @@ if File.file?(blog_manifest)
     metadata.merge!('layout' => 'post', 'permalink' => "/posts/#{slug}/")
     write(File.join(source, '_posts', name), YAML.dump(metadata) + "---\n\n" + text)
   end
+  group_blog(manifest, source, configuration)
 end
 
 { 'images' => 'assets/img', 'files' => 'assets/files', 'image/logo' => 'assets/img/logo', 'pages/data' => '_data',
@@ -253,6 +256,8 @@ Jekyll::PluginManager.require_from_bundler
 Jekyll::Commands::Build.process('source' => source, 'destination' => destination, 'trace' => true)
 
 # Remove blog dates from rendered output without modifying theme templates.
+success = system('python', File.join(ROOT, 'tools', 'refine_site.py'), destination)
+raise 'Page presentation adjustment failed' unless success
 success = system('python', File.join(ROOT, 'tools', 'remove_blog_dates.py'), destination)
 raise 'Blog date removal failed' unless success
 

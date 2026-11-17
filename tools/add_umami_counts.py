@@ -17,8 +17,12 @@ asset.write_bytes(Path(__file__).with_name('umami-counts.js').read_bytes())
 version = hashlib.sha256(asset.read_bytes()).hexdigest()[:12]
 style = '''<style id="umami-counts-style">
 .umami-counts { display: flex; flex-wrap: wrap; gap: .35rem 1rem;
-  margin: 2rem 0 1rem; font-size: .8125rem; line-height: 1.6;
+  margin: 0; font-size: .8125rem; line-height: 1.6;
   color: var(--text-muted-color, #757575); }
+footer { flex-wrap: wrap; gap: .5rem 1.5rem; }
+footer .site-stats { display:flex; flex-wrap:wrap; align-items:center;
+  justify-content:flex-end; gap:.35rem 1rem; font-size:.8125rem; }
+@media(max-width:991.98px) { footer .site-stats { justify-content:center; } }
 .umami-counts > span { white-space: nowrap; }
 .umami-counts [data-count] { font-variant-numeric: tabular-nums; }
 </style>'''
@@ -38,7 +42,13 @@ for path in args.site.rglob('*.html'):
               f'data-share-slug="{escape(args.share_slug)}" data-website-id="{escape(args.website_id)}">'
               f'<span>{period}</span><span>{page} <span data-count="page">—</span>{unit}</span>'
               f'<span>{site} <span data-count="site">—</span>{unit}</span></div>')
-    text, placed = re.subn(r'</main>', lambda m: markup + m[0], text, count=1, flags=re.I)
+    home = path.relative_to(args.site).as_posix() in ('index.html', 'en/index.html')
+    link = ''
+    if home:
+        href = args.baseurl.rstrip('/') + ('/en' if en else '') + '/analytics/'
+        link = f'<a class="site-analytics-link" href="{escape(href)}">{"Website Analytics" if en else "访问统计"}</a>'
+    markup = '<div class="site-stats">' + link + markup + '</div>'
+    text, placed = re.subn(r'</footer>', lambda m: markup + m[0], text, count=1, flags=re.I)
     if placed != 1:
         raise ValueError(f'Cannot place Umami counts: {path}')
     script = f'<script defer src="{escape(args.baseurl.rstrip("/") + "/assets/js/umami-counts.js")}?v={version}"></script>'
