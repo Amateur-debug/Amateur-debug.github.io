@@ -12,3 +12,6 @@ paginate_path: /blog/page:num/
 umami:
   website_id: e9335f5a-3352-46be-b3e9-ffaf8ad8348d
   script_url: https://cloud.umami.is/script.js
+  share_slug: NdHZW9v84S4J5Mk8
+  api_base: https://cloud.umami.is/analytics/us/api
+  show_counts: true

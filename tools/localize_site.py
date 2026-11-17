@@ -122,14 +122,6 @@ def localize(site, baseurl, url, translations):
             parser.feed(text)
             parser.close()
             text = ''.join(parser.parts)
-        analytics_page = Path('en/analytics/index.html' if english else 'analytics/index.html')
-        if analytics_page in pages:
-            analytics_url = html.escape(baseurl + route(analytics_page), quote=True)
-            analytics_label = 'Website Analytics' if english else '访问统计'
-            analytics_link = f'<p class="site-analytics-link"><a href="{analytics_url}">{analytics_label}</a></p>'
-            text, footer_count = re.subn(r'</footer>', lambda m: analytics_link + m[0], text, count=1)
-            if footer_count != 1:
-                raise ValueError(f'Cannot place analytics link: {relative}')
         # Use the existing top bar when available; other themes use their header.
         text, count = re.subn(r'(<button\b[^>]*\bid="search-trigger"[^>]*>)',
                               lambda m: button + m[1], text, count=1)

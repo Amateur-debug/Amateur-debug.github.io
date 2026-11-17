@@ -321,5 +321,12 @@ if !options[:locale] && settings.dig('umami', 'website_id')
     raise "Missing HTML head: #{path}" unless text.match?(/<head\b[^>]*>/i)
     write(path, text.sub(/<head\b[^>]*>/i) { |tag| tag + script })
   end
+  if tracking.fetch('show_counts', false)
+    success = system('python', File.join(ROOT, 'tools', 'add_umami_counts.py'), destination,
+                     '--url', settings.fetch('url'), '--baseurl', settings.fetch('baseurl', ''),
+                     '--website-id', website_id, '--share-slug', tracking.fetch('share_slug'),
+                     '--api-base', tracking.fetch('api_base'))
+    raise 'Umami count display generation failed' unless success
+  end
 end
 puts "Built theme=#{selected}, content=#{content_commit[0, 12]}, output=#{destination}"

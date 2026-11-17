@@ -53,11 +53,14 @@ for theme in ('chirpy', 'minimal'):
         assert trackers[0]['data-website-id'] == 'e9335f5a-3352-46be-b3e9-ffaf8ad8348d'
         assert trackers[0]['src'] == 'https://cloud.umami.is/script.js'
         assert trackers[0]['data-domains'] == 'amateur-debug.github.io'
+        assert rendered.count('id="umami-counts"') == 1
+        assert sum(attrs.get('src', '').startswith('/assets/js/umami-counts.js?v=') for tag, attrs in elements if tag == 'script') == 1
     for page in output.rglob('*.html'):
         rendered = page.read_text(encoding='utf-8')
         assert 'busuanzi' not in rendered and 'site-pageviews' not in rendered
         if page.name == '404.html' or 'shared-blog-redirect' in rendered:
             assert 'data-website-id=' not in rendered
+            assert 'id="umami-counts"' not in rendered
     assert not (output / 'assets/js/pageviews.js').exists()
     print(f'PASS {theme}: Umami on pages, shared articles and pagination; no duplicate redirect tracking or Busuanzi.')
     first = (output / 'blog/index.html').read_text(encoding='utf-8')

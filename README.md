@@ -148,6 +148,12 @@ Git 白名单只控制新文件是否可被 Git 跟踪，不控制网页是否�
 
 通过 `_config.yml` 的 `umami.website_id` 与 `umami.script_url` 配置。网站 ID 是公开标识，不需要密码或 API 密钥；删除 `umami` 配置即可停用。`tools/build.rb` 在中英文页面合并后注入一次官方脚本，覆盖独立页面、博客列表和文章，跳过 404 与跳转页；`data-domains` 限定正式域名，本地预览不发送统计。无需修改主题模板。
 
-访问趋势、来源和页面浏览量在 Umami 后台查看。需要公开展示时，在网站设置中创建 Share URL，可将只读统计面板通过 iframe 嵌入网站；当前公开面板为 `https://cloud.umami.is/share/NdHZW9v84S4J5Mk8`，嵌入内容仓库的 `pages/analytics.md` 和 `pages/en/analytics.md`，分别生成 `/analytics/` 与 `/en/analytics/`。`tools/localize_site.py` 为已有统计页面的语言版本增加页脚入口；更换分享链接时同步修改两份 Markdown。公开面板与自定义数字计数器是不同接入方式，Umami Cloud 免费版没有官方 API 访问权限。参考 [官方公开面板指南](https://docs.umami.is/docs/guides/create-a-public-dashboard) 与 [套餐说明](https://umami.is/pricing)。
+访问趋势、来源和页面浏览量在 Umami 后台查看。需要公开展示时，在网站设置中创建 Share URL，可将只读统计面板通过 iframe 嵌入网站；当前公开面板为 `https://cloud.umami.is/share/NdHZW9v84S4J5Mk8`，嵌入内容仓库的 `pages/analytics.md` 和 `pages/en/analytics.md`，分别生成 `/analytics/` 与 `/en/analytics/`。中英文首页正文底部提供入口，分别在 `pages/index.md` 和 `pages/en/index.md` 维护；更换分享链接时同步修改两份 Markdown。免费版没有付费套餐的 API 密钥访问能力，但公开分享端点可以返回分享范围内的数据，本网站已实测可用。参考 [官方公开面板指南](https://docs.umami.is/docs/guides/create-a-public-dashboard) 与 [套餐说明](https://umami.is/pricing)。
 
 验证使用 `python tools/test_builds.py ../docs`，检查中英文页面、共享博客、分页与跳转页的统计脚本是否正确加载。
+
+每个内容页面底部显示“近 6 个月 · 本页浏览 · 全站浏览”，英文页面使用对应英文文案。数字来自同一个 Umami 公开分享，时间范围与免费版 6 个月保留期对应，并非永久累计值；本页使用路径精确筛选，中英文路径分别统计，博客共用地址，URL 查询参数和锚点不参与筛选。
+
+`tools/add_umami_counts.py` 注入计数栏，`tools/umami-counts.js` 通过公开分享端点取得只读分享令牌，再并行读取本页和全站统计；只发送 GET 请求，不重复上报访问、不保存令牌、不需要账户密码或私有 API 密钥。正常访问仍由官方脚本记录，显示数字可能稍有延迟。预览、404 和跳转页不读取计数；查询失败显示 `—`，不会伪造零值。
+
+配置位于 `_config.yml` 的 `umami.share_slug`、`umami.api_base`、`umami.show_counts`；将 `show_counts` 设为 `false` 仅关闭简洁计数。公开分享需开启 Overview 和 Filters；撤销分享或 Umami 调整分享接口后需更新配置或适配。验证计数逻辑可运行 `node tools/test_umami_counts.cjs`。
