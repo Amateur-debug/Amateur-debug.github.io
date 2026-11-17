@@ -57,7 +57,11 @@ for theme in ('chirpy', 'minimal'):
         footer = re.search(r'<footer\b[^>]*>.*?</footer>', rendered, re.S).group()
         assert 'id="umami-counts"' in footer
         assert 'jekyll-theme-chirpy' not in footer
-        assert ('class="site-analytics-link"' in footer) == (route in ('', 'en/'))
+        assert 'class="site-analytics-link"' not in footer
+        assert ('class="site-analytics-link"' in rendered) == (route in ('', 'en/'))
+        if route in ('', 'en/'):
+            switch = re.search(r'<nav class="site-language-switch".*?</nav>', rendered, re.S).group()
+            assert switch.index('site-analytics-link') < switch.index('hreflang=')
         assert ('id="access-lastmod"' in rendered) == (theme == 'chirpy' and route == 'blog/')
         assert sum(attrs.get('src', '').startswith('/assets/js/umami-counts.js?v=') for tag, attrs in elements if tag == 'script') == 1
     for page in output.rglob('*.html'):

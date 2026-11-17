@@ -25,6 +25,8 @@ footer .site-stats { display:flex; flex-wrap:wrap; align-items:center;
 @media(max-width:991.98px) { footer .site-stats { justify-content:center; } }
 .umami-counts > span { white-space: nowrap; }
 .umami-counts [data-count] { font-variant-numeric: tabular-nums; }
+.site-language-switch { align-items: center; gap: .65rem; }
+.site-language-switch .site-analytics-link { font-size: .8125rem; }
 </style>'''
 escape = lambda value: html.escape(value, quote=True)
 for path in args.site.rglob('*.html'):
@@ -43,11 +45,14 @@ for path in args.site.rglob('*.html'):
               f'<span>{period}</span><span>{page} <span data-count="page">—</span>{unit}</span>'
               f'<span>{site} <span data-count="site">—</span>{unit}</span></div>')
     home = path.relative_to(args.site).as_posix() in ('index.html', 'en/index.html')
-    link = ''
     if home:
         href = args.baseurl.rstrip('/') + ('/en' if en else '') + '/analytics/'
-        link = f'<a class="site-analytics-link" href="{escape(href)}">{"Website Analytics" if en else "访问统计"}</a>'
-    markup = '<div class="site-stats">' + link + markup + '</div>'
+        link = f'<a class="site-analytics-link" href="{escape(href)}">{"Analytics" if en else "访问统计"}</a>'
+        text, placed = re.subn(r'(<nav\b[^>]*class="site-language-switch"[^>]*>)',
+                              lambda m: m[0] + link, text, count=1)
+        if placed != 1:
+            raise ValueError(f'Cannot place analytics beside language switch: {path}')
+    markup = '<div class="site-stats">' + markup + '</div>'
     text, placed = re.subn(r'</footer>', lambda m: markup + m[0], text, count=1, flags=re.I)
     if placed != 1:
         raise ValueError(f'Cannot place Umami counts: {path}')
