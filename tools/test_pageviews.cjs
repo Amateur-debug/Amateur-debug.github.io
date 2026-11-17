@@ -1,42 +1,51 @@
-// Loader behavior without making requests that would inflate real statistics.
+// Exercise the client without inflating real statistics.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/pageviews.js', 'utf8');
 
-function fixture(origin = 'https://amateur-debug.github.io', lang = 'zh-CN') {
-  const scripts = [], timers = [];
+async function fixture({ href = 'https://amateur-debug.github.io/projects/index.html?q=private#heading',
+  lang = 'zh-CN', failure = false, data = { page_pv: 12, site_pv: 1234 } } = {}) {
+  const calls = [];
   const counter = { dataset: { origin: 'https://amateur-debug.github.io' }, title: '' };
-  const value = { textContent: '—' };
+  const values = { page_pv: { textContent: '—' }, site_pv: { textContent: '—' } };
   const context = vm.createContext({
-    location: { origin },
+    URL, AbortController, location: new URL(href),
     document: {
       documentElement: { lang },
-      getElementById: (id) => id === 'site-pageviews' ? counter : value,
-      createElement: () => ({}),
-      head: { appendChild: (script) => scripts.push(script) }
+      getElementById: id => id === 'site-pageviews' ? counter : values[id.replace('busuanzi_value_', '')]
     },
-    window: { setTimeout: (fn) => timers.push(fn) }
+    window: { setTimeout: () => 1, clearTimeout: () => {} },
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      if (failure) throw new Error('Network offline');
+      return { ok: true, json: async () => ({ success: true, data }) };
+    }
   });
-  vm.runInContext(source, context);
-  return { context, scripts, timers, counter, value };
+  await vm.runInContext(source, context);
+  return { context, calls, counter, values };
 }
-const live = fixture();
-assert.equal(live.scripts.length, 1);
-assert.equal(live.scripts[0].referrerPolicy, 'no-referrer-when-downgrade');
-vm.runInContext(source, live.context);
-assert.equal(live.scripts.length, 1, 'Repeated initialization cannot count a view twice');
-for (const origin of ['http://localhost:4077', 'http://127.0.0.1:4077', 'https://preview.example.com']) {
-  assert.equal(fixture(origin).scripts.length, 0, 'Preview visits must not reach the counter');
-}
-live.scripts[0].onerror();
-assert.equal(live.value.textContent, '—', 'An outage must not invent zero views');
-assert.match(live.counter.title, /暂时无法/);
-const timeout = fixture(undefined, 'en');
-timeout.timers[0]();
-assert.match(timeout.counter.title, /unavailable/);
-const success = fixture();
-success.value.textContent = '123';
-success.timers[0]();
-assert.equal(success.counter.title, '', 'Late timeout cannot overwrite successful data');
-console.log('PASS pageviews: one request, preview isolation, unavailable state and successful response.');
+(async () => {
+  const live = await fixture();
+  assert.equal(live.calls.length, 1);
+  assert.equal(live.calls[0].options.method, 'POST');
+  assert.equal(live.calls[0].options.credentials, 'omit');
+  assert.equal(live.calls[0].options.headers['x-bsz-referer'], 'https://amateur-debug.github.io/projects/');
+  assert.equal(live.values.page_pv.textContent, '12');
+  assert.equal(live.values.site_pv.textContent, '1,234');
+  await vm.runInContext(source, live.context);
+  assert.equal(live.calls.length, 1, 'Repeated initialization must not count twice');
+  for (const href of ['http://localhost:4077/', 'http://127.0.0.1:4077/', 'https://preview.example.com/']) {
+    assert.equal((await fixture({ href })).calls.length, 0);
+  }
+  const en = await fixture({ href: 'https://amateur-debug.github.io/en/', lang: 'en' });
+  assert.equal(en.calls[0].options.headers['x-bsz-referer'], 'https://amateur-debug.github.io/en/');
+  for (const options of [{ failure: true }, { data: { page_pv: -1, site_pv: 10 } }, { data: {} }]) {
+    const failed = await fixture(options);
+    assert.equal(failed.values.page_pv.textContent, '—');
+    assert.equal(failed.values.site_pv.textContent, '—');
+    assert.match(failed.counter.title, /暂时无法/);
+    assert.equal(failed.calls.length, 1, 'Failures must not retry and double-count');
+  }
+  console.log('PASS pageviews: real response handling, URL normalization, one request, preview isolation and failure states.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

@@ -49,7 +49,7 @@ for theme in ('chirpy', 'minimal'):
         elements = Elements(rendered).elements
         for identifier in ('site-pageviews', 'busuanzi_value_page_pv', 'busuanzi_value_site_pv'):
             assert sum(attrs.get('id') == identifier for _, attrs in elements) == 1
-        assert sum(attrs.get('src') == '/assets/js/pageviews.js' for tag, attrs in elements if tag == 'script') == 1
+        assert sum(attrs.get('src', '').startswith('/assets/js/pageviews.js?v=') for tag, attrs in elements if tag == 'script') == 1
     for page in output.rglob('*.html'):
         rendered = page.read_text(encoding='utf-8')
         if page.name == '404.html' or 'shared-blog-redirect' in rendered:

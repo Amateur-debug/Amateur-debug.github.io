@@ -1,5 +1,6 @@
 """Add page/site PV counters to rendered pages, independently of the theme."""
 import argparse
+import hashlib
 import html
 from pathlib import Path
 import re
@@ -18,6 +19,7 @@ def add_pageviews(site, url, baseurl=''):
     asset = site / 'assets/js/pageviews.js'
     asset.parent.mkdir(parents=True, exist_ok=True)
     asset.write_text(Path(__file__).with_name('pageviews.js').read_text(encoding='utf-8'), encoding='utf-8')
+    version = hashlib.sha256(asset.read_bytes()).hexdigest()[:12]
     count = 0
     for path in sorted(site.rglob('*.html')):
         text = path.read_text(encoding='utf-8')
@@ -42,7 +44,7 @@ def add_pageviews(site, url, baseurl=''):
         if not placed:
             raise ValueError(f'Cannot place page views: {path}')
         head = (f'<style id="site-pageviews-style">{STYLE}</style>'
-                f'<script defer src="{html.escape(baseurl.rstrip("/") + "/assets/js/pageviews.js", quote=True)}"></script>')
+                f'<script defer src="{html.escape(baseurl.rstrip("/") + "/assets/js/pageviews.js", quote=True)}?v={version}"></script>')
         text, placed = re.subn(r'<head\b[^>]*>', lambda m: m[0] + head, text, count=1, flags=re.I)
         if not placed:
             raise ValueError(f'Cannot load page views: {path}')

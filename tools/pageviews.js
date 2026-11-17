@@ -1,5 +1,5 @@
-/* Display shared, server-side PV totals using the original Busuanzi service. */
-(() => {
+/* Server-side PV totals via the open-source Busuanzi HTTP API. */
+(async () => {
   'use strict';
   const counter = document.getElementById('site-pageviews');
   if (!counter || window.sitePageviewsStarted) return;
@@ -10,19 +10,37 @@
     return;
   }
   window.sitePageviewsStarted = true;
-  const script = document.createElement('script');
-  script.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
-  script.async = true;
-  // The official loader also sets this on its JSONP request. The full page
-  // path is needed: modern browsers otherwise send only the origin cross-site.
-  script.referrerPolicy = 'no-referrer-when-downgrade';
-  const unavailable = () => {
-    const value = document.getElementById('busuanzi_value_page_pv');
-    if (value && value.textContent === '—') {
-      counter.title = english ? 'View counts are temporarily unavailable.' : '浏览量暂时无法获取。';
+  // Query parameters, heading anchors and index.html aliases share one count.
+  const page = new URL(location.href);
+  page.search = '';
+  page.hash = '';
+  page.pathname = page.pathname.replace(/\/index\.html$/, '/');
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 12000);
+  try {
+    // Endpoint used by the service's official https://busuanzi.9420.ltd/js loader.
+    const response = await fetch('https://bsz.iirose.cn/api', {
+      method: 'POST',
+      headers: { 'x-bsz-referer': page.href },
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error('Counter unavailable');
+    const result = await response.json();
+    if (!result.success || !['page_pv', 'site_pv'].every(key =>
+      Number.isSafeInteger(result.data?.[key]) && result.data[key] >= 0)) {
+      throw new Error('Invalid view counts');
     }
-  };
-  script.onerror = unavailable;
-  window.setTimeout(unavailable, 12000);
-  document.head.appendChild(script);
+    for (const key of ['page_pv', 'site_pv']) {
+      document.getElementById('busuanzi_value_' + key).textContent =
+        result.data[key].toLocaleString(english ? 'en-US' : 'zh-CN');
+    }
+  } catch {
+    // Do not retry automatically: the server may already have counted the visit.
+    counter.title = english ? 'View counts are temporarily unavailable.' : '浏览量暂时无法获取。';
+  } finally {
+    window.clearTimeout(timeout);
+  }
 })();
