@@ -148,7 +148,13 @@ Git 白名单只控制新文件是否可被 Git 跟踪，不控制网页是否�
 
 通过 `_config.yml` 的 `umami.website_id` 与 `umami.script_url` 配置。网站 ID 是公开标识，不需要密码或 API 密钥；删除 `umami` 配置即可停用。`tools/build.rb` 在中英文页面合并后注入一次官方脚本，覆盖独立页面、博客列表和文章，跳过 404 与跳转页；`data-domains` 限定正式域名，本地预览不发送统计。无需修改主题模板。
 
-访问趋势、来源和页面浏览量在 Umami 后台查看。需要公开展示时，在网站设置中创建 Share URL，可将只读统计面板通过 iframe 嵌入网站；当前公开面板为 `https://cloud.umami.is/share/NdHZW9v84S4J5Mk8`，嵌入内容仓库的 `pages/analytics.md` 和 `pages/en/analytics.md`，分别生成 `/analytics/` 与 `/en/analytics/`。中英文首页顶栏中英切换左侧提供入口，由 `tools/add_umami_counts.py` 生成；更换分享链接时同步修改两份 Markdown。免费版没有付费套餐的 API 密钥访问能力，但公开分享端点可以返回分享范围内的数据，本网站已实测可用。参考 [官方公开面板指南](https://docs.umami.is/docs/guides/create-a-public-dashboard) 与 [套餐说明](https://umami.is/pricing)。
+网站使用自己的只读统计面板，页面位于 `/analytics/` 与 `/en/analytics/`，由内容仓库的 `pages/analytics.md` 和 `pages/en/analytics.md` 中 `<div id="site-analytics"></div>` 标记生成。`tools/add_analytics.py` 在构建后注入界面和本地资源，不修改主题模板。中英文首页顶栏中英切换左侧提供入口。
+
+面板继续读取 Umami Cloud 的公开分享数据，当前分享为 `https://cloud.umami.is/share/NdHZW9v84S4J5Mk8`。更换分享时修改 `_config.yml` 的 `umami.share_slug`，无需编辑 Markdown；Overview 和 Filters 必须开启。界面支持近 7/30/90 天及近 6 个月、页面路径精确筛选、浏览量/访客数/访问次数、每日趋势、地区地图及页面/来源/浏览器/设备排行。时间边界使用 Asia/Shanghai，排行数值为访客数，来源表仅列接口返回的来源网站，不用差额伪造直接访问量。
+
+`tools/analytics/dashboard.js` 仅发送 GET 请求，公开分享令牌只保存在内存，不写入存储或 URL；筛选变更取消旧请求，防止旧数据覆盖新筛选。单个接口失败时相应区域显示不可用，不显示虚构的零值。本地预览可读取公开数据，但官方追踪脚本仍受正式域名限制。
+
+地图文件 `tools/analytics/world.json` 原样采用 [fix-umami-cn-map](https://github.com/ttgml/fix-umami-cn-map) 的修订轮廓，通过本地 D3 7.9.0 绘制。地区数值仍按 Umami 原始代码匹配，不合并或重分配；没有独立轮廓的地区仍保留在列表中。更新地图时保留 `tools/analytics/SOURCES.md` 中的来源记录及依赖许可证。此改动影响本站面板，Umami Cloud 后台不变。运行 `node tools/test_analytics.cjs` 检查时区、月份边界、空数据、路径筛选及地图包含关系。
 
 验证使用 `python tools/test_builds.py ../docs`，检查中英文页面、共享博客、分页与跳转页的统计脚本是否正确加载。
 

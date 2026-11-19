@@ -333,5 +333,11 @@ if !options[:locale] && settings.dig('umami', 'website_id')
                      '--api-base', tracking.fetch('api_base'))
     raise 'Umami count display generation failed' unless success
   end
+  if tracking['share_slug'] && tracking['api_base']
+    success = system('python', File.join(ROOT, 'tools', 'add_analytics.py'), destination,
+                     '--baseurl', settings.fetch('baseurl', ''), '--website-id', website_id,
+                     '--share-slug', tracking.fetch('share_slug'), '--api-base', tracking.fetch('api_base'))
+    raise 'Public analytics dashboard generation failed' unless success
+  end
 end
 puts "Built theme=#{selected}, content=#{content_commit[0, 12]}, output=#{destination}"
