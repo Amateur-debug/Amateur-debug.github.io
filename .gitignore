@@ -31,6 +31,11 @@ __pycache__/
 
 .bundle/
 vendor/
+!/tools/analytics/vendor/
+/tools/analytics/vendor/*
+!/tools/analytics/vendor/d3.min.js
+!/tools/analytics/vendor/d3.LICENSE
+!/tools/analytics/vendor/umami.LICENSE
 .jekyll-cache/
 .jekyll-metadata
 _site/

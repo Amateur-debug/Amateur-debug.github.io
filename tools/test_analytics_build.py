@@ -21,4 +21,6 @@ with TemporaryDirectory() as temporary:
         assert 'iframe' not in rendered
         assert ('Date range' in rendered) == route.startswith('en/')
     assert (site / 'assets/analytics/world.json').read_bytes() == (root / 'analytics/world.json').read_bytes()
+    for name in ('d3.min.js', 'd3.LICENSE', 'umami.LICENSE'):
+        assert (site / 'assets/analytics/vendor' / name).is_file()
 print('PASS: bilingual dashboard, optional head closing tag, base URL, assets, and map provenance.')
