@@ -41,7 +41,7 @@ for language, route in [('zh', 'analytics/index.html'), ('en', 'en/analytics/ind
 <div class="analytics-cards">{cards}</div>
 <section class="analytics-panel"><h2>{t('访问趋势', 'Traffic over time')}</h2><div data-chart></div><details><summary>{t('查看每日数据', 'View daily data')}</summary><div data-daily></div></details></section>
 <section class="analytics-panel"><h2>{t('访客地区', 'Visitor locations')}</h2><div class="analytics-geography"><div><div data-map></div><p class="analytics-map-label" aria-live="polite">{t('将鼠标移到地图上查看访客数', 'Hover over the map to see visitor counts')}</p></div><div data-list="country"></div></div>
-<p class="analytics-note">{t('地图轮廓采用', 'Map geometry from')} <a href="https://github.com/ttgml/fix-umami-cn-map" target="_blank" rel="noopener noreferrer">fix-umami-cn-map</a>{t('；地区列表保留 Umami 的原始分类与数值。', '; location lists preserve the original Umami categories and counts.')}</p></section>
+</section>
 <div class="analytics-grid">{panels}</div>
 <p class="analytics-note">{t('数据来自 Umami · 时区 Asia/Shanghai · 排行按访客数排序，同一访客可能访问多个页面。数据更新可能略有延迟。', 'Data from Umami · Time zone: Asia/Shanghai · Rankings show visitors; a visitor may visit multiple pages. Data updates may be delayed.')}</p>
 <noscript>{t('请启用 JavaScript 查看统计面板。', 'Enable JavaScript to view the dashboard.')}</noscript>
